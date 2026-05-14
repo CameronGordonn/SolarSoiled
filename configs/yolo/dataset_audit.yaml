@@ -1,0 +1,8 @@
+audit_rules:
+  min_images_per_split:
+    train: 40
+    val: 5
+    test: 5
+  max_empty_label_ratio: 0.80
+  check_split_leakage: true
+  check_class_balance: true

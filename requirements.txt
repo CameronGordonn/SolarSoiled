@@ -1,0 +1,35 @@
+# Core numerical and data handling
+numpy>=1.23
+pandas>=1.5
+
+# Geospatial stack
+rasterio>=1.3
+geopandas>=0.13
+shapely>=2.0
+pyproj>=3.5
+geojson>=3.0
+
+# Image handling
+Pillow>=9.4
+scikit-image>=0.20
+
+# Machine learning / modeling
+torch>=2.0
+ultralytics>=11.0
+scikit-learn>=1.2
+xgboost>=1.7
+
+# Optional: GeoAI for visualization, STAC search, and SAM pre‑labeling
+#   Preferred installation via conda-forge:  `conda install -c conda-forge geoai`
+#   or with pip: `pip install geoai-py`
+geoai-py
+
+# Dataset management / labeling
+roboflow>=1.0
+
+# Small-object inference boost
+sahi>=0.11
+
+# Stage 2 — soiling risk model
+requests-cache>=1.1
+PyYAML>=6.0

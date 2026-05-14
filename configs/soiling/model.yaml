@@ -1,0 +1,31 @@
+# XGBoost hyperparameters + spatial CV config for the soiling risk model.
+#
+# target_mode: `regression` trains on the continuous IWSR (reg:squarederror);
+#   predictions are ranked and converted back to binary via iwsr_risk_threshold
+#   for reporting AUC alongside a rank-correlation metric. `binary` keeps the
+#   original classifier head for ablation.
+target_mode: binary                   # regression | binary
+
+xgboost:
+  # Objective is overridden by target_mode; the rest applies to both heads.
+  n_estimators: 200
+  max_depth: 5
+  learning_rate: 0.05
+  subsample: 0.8
+  colsample_bytree: 0.8
+  random_state: 42
+
+spatial_cv:
+  n_folds: 5
+  cluster_km: 10.0
+  random_state: 42
+
+# Weight training rows by inverse IWSR-CI width; stations with tighter NREL
+# bounds pull the model harder than noisier ones.
+sample_weights:
+  mode: iwsr_ci_width                 # iwsr_ci_width | uniform
+  clip_percentiles: [5, 95]
+
+# Minimum spatial CV AUC to consider the model shippable.
+acceptance:
+  min_mean_auc: 0.70

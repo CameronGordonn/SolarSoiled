@@ -1,0 +1,14 @@
+threshold_sweep_sahi:
+  confidence: [0.10, 0.15, 0.20, 0.25, 0.30, 0.40]
+  iou: [0.50, 0.60, 0.70]
+  splits: [val]
+  imgsz: 640
+  target_metric: f1
+  # SAHI-specific (these affect which boxes survive postprocess at each conf)
+  slice_size: 640
+  slice_overlap: 0.20
+  postprocess: GREEDYNMM
+  postprocess_match_metric: IOS
+  # Set to true to merge full-tile detections with slice results (recovers large arrays).
+  # Re-run 05d with this enabled to compare SAHI F1 before committing.
+  perform_standard_pred: false

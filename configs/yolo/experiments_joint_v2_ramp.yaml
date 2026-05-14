@@ -1,0 +1,174 @@
+# Phase 3 Duke ramp curriculum — start NAIP-only, ramp Duke in small batches.
+#
+# Each step warm-starts from the 0.563-baseline `sahi_baseline_train7.pt` (NOT
+# from the previous ramp step) so each step is independently interpretable as
+# "what does this much Duke do, holding everything else equal?".
+#
+# Stop-rule (hard): if NAIP test mAP50 drops by more than 0.07 vs 0.563
+# baseline, halt the ramp and keep the previous step's weights. Track
+# precision separately — Josh's 2026-05-03 joint result (0.128 mAP50 / 0.76
+# recall / <0.1 precision) showed that mAP50 alone won't catch the
+# over-prediction failure mode that Duke addition produces.
+#
+# Per step, the runbook is:
+#   python scripts/02g_build_joint_v2_lists.py --naip-repeat <N>
+#   python scripts/03_train_yolov8_seg.py \
+#       --config configs/yolo/experiments_joint_v2_ramp.yaml --experiment R<i>
+#   python scripts/05e_ramp_eval.py --run R<i>
+#
+# Hyperparameters mirror experiments_joint_v2.yaml — only `name` changes per
+# step. Keeping these identical isolates the ramp variable.
+
+# Data is set per experiment so R0 stays NAIP-only while R1+ use the joint
+# Duke/NAIP lists built by `02g_build_joint_v2_lists.py`.
+
+rtx3060_presets:
+  laptop:
+    batch: 1
+    imgsz: 512
+    accumulate: 1
+  small:
+    batch: 8
+    imgsz: 640
+    accumulate: 1
+  medium:
+    batch: 4
+    imgsz: 768
+    accumulate: 2
+
+# Ramp metadata — used by 05e_ramp_eval.py to look up `naip_repeat` per step
+# without re-grepping. Step `R0` is reproduced as NAIP-only by passing
+# --naip-repeat infinity to 02g (or building only the NAIP list manually).
+ramp:
+  baseline_naip_test_map50: 0.563
+  naip_regression_halt_delta: 0.07
+  steps:
+    - {name: R0, naip_repeat: null,  notes: "NAIP-only baseline reproduction"}
+    - {name: R1, naip_repeat: 580,   notes: "~20:1 NAIP:Duke effective"}
+    - {name: R2, naip_repeat: 200,   notes: "~7:1 NAIP:Duke effective"}
+    - {name: R3, naip_repeat: 100,   notes: "~3.5:1 NAIP:Duke effective"}
+    - {name: R4, naip_repeat: 50,    notes: "~1.7:1 NAIP:Duke effective"}
+    - {name: R5, naip_repeat: 29,    notes: "~1:1 — informational only"}
+
+experiments:
+  # R0 warm-starts from sahi_baseline_train7.pt. The SAHI baseline already
+  # learned to find small panels at 60cm — even though our hand labels miss
+  # many of them, that prior is exactly what we want to preserve while we
+  # patch the labels iteratively in Roboflow. Fresh COCO init would discard
+  # that small-panel sensitivity and the patched labels still won't be
+  # complete enough at 60cm to teach it back from scratch. R1+ (Duke ramp)
+  # should warm-start from R0's converged best.pt — update those entries
+  # below when ramp resumes.
+  - name: R0
+    data: data/yolo/naip/data.yaml
+    model: models/sahi_baseline_train7.pt
+    preset: small
+    epochs: 100
+    optimizer: SGD
+    lr0: 0.001
+    degrees: 5.0
+    shear: 2.0
+    perspective: 0.0
+    scale: 0.5
+    mosaic: 0.5
+    close_mosaic: 5
+    copy_paste: 0.0
+    auto_augment: null
+    erasing: 0.0
+    translate: 0.0
+    cos_lr: true
+
+  - name: R1
+    data: data/yolo/joint_v2/data.yaml
+    model: models/sahi_baseline_train7.pt
+    preset: small
+    epochs: 100
+    optimizer: SGD
+    lr0: 0.001
+    degrees: 5.0
+    shear: 2.0
+    perspective: 0.0
+    scale: 0.5
+    mosaic: 0.5
+    close_mosaic: 5
+    copy_paste: 0.0
+    auto_augment: null
+    erasing: 0.0
+    translate: 0.0
+    cos_lr: true
+
+  - name: R2
+    data: data/yolo/joint_v2/data.yaml
+    model: models/sahi_baseline_train7.pt
+    preset: small
+    epochs: 100
+    optimizer: SGD
+    lr0: 0.001
+    degrees: 5.0
+    shear: 2.0
+    perspective: 0.0
+    scale: 0.5
+    mosaic: 0.5
+    close_mosaic: 5
+    copy_paste: 0.0
+    auto_augment: null
+    erasing: 0.0
+    translate: 0.0
+    cos_lr: true
+
+  - name: R3
+    data: data/yolo/joint_v2/data.yaml
+    model: models/sahi_baseline_train7.pt
+    preset: small
+    epochs: 100
+    optimizer: SGD
+    lr0: 0.001
+    degrees: 5.0
+    shear: 2.0
+    perspective: 0.0
+    scale: 0.5
+    mosaic: 0.5
+    close_mosaic: 5
+    copy_paste: 0.0
+    auto_augment: null
+    erasing: 0.0
+    translate: 0.0
+    cos_lr: true
+
+  - name: R4
+    data: data/yolo/joint_v2/data.yaml
+    model: models/sahi_baseline_train7.pt
+    preset: small
+    epochs: 100
+    optimizer: SGD
+    lr0: 0.001
+    degrees: 5.0
+    shear: 2.0
+    perspective: 0.0
+    scale: 0.5
+    mosaic: 0.5
+    close_mosaic: 5
+    copy_paste: 0.0
+    auto_augment: null
+    erasing: 0.0
+    translate: 0.0
+    cos_lr: true
+
+  - name: R5
+    data: data/yolo/joint_v2/data.yaml
+    model: models/sahi_baseline_train7.pt
+    preset: small
+    epochs: 100
+    optimizer: SGD
+    lr0: 0.001
+    degrees: 5.0
+    shear: 2.0
+    perspective: 0.0
+    scale: 0.5
+    mosaic: 0.5
+    close_mosaic: 5
+    copy_paste: 0.0
+    auto_augment: null
+    erasing: 0.0
+    translate: 0.0
+    cos_lr: true

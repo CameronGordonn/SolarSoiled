@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SolarSoiled &mdash; AI-Powered Solar Array Detection &amp; Soiling Risk</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="navbar">
+    <div class="container nav-inner">
+      <a href="#" class="logo">
+        <img src="assets/logo-placeholder.svg" alt="SolarSoiled logo" width="32" height="32" />
+        <span>SolarSoiled</span>
+      </a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="#status">Status</a></li>
+        <li><a href="#problem">Problem</a></li>
+        <li><a href="#solution">Solution</a></li>
+        <li><a href="#how-it-works">How It Works</a></li>
+        <li><a href="#outputs">Outputs</a></li>
+        <li><a href="#partners">Partners</a></li>
+      </ul>
+      <a href="#cta" class="btn btn-sm nav-cta">Apply to be a Partner</a>
+      <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header id="hero" class="hero">
+    <div class="container hero-grid">
+      <div class="hero-text">
+        <h1>Stop Losing Power to&nbsp;Dirt.</h1>
+        <p class="hero-sub">
+          SolarSoiled uses computer-vision ML to detect every solar array in
+          your service area and score each one for soiling risk &mdash; so you
+          can clean smarter, not harder.
+        </p>
+        <div class="hero-actions">
+          <a href="#cta" class="btn btn-lg">Request a Demo</a>
+          <a href="#how-it-works" class="btn btn-lg btn-outline">See How It Works</a>
+        </div>
+        <p class="hero-note">No hardware install &bull; No flights required &mdash; built on public NAIP 60cm aerial imagery</p>
+        <p class="hero-beta">Currently in early beta &mdash; detection accuracy and coverage are still improving.</p>
+      </div>
+      <div class="hero-img">
+        <img src="assets/hero-placeholder.svg" alt="Solar arrays detected in public NAIP aerial imagery with a soiling risk overlay" />
+      </div>
+    </div>
+  </header>
+
+  <!-- STATUS -->
+  <section id="status" class="section status-section">
+    <div class="container">
+      <span class="section-tag">Current Beta Status</span>
+      <h2>Live model quality, stated plainly</h2>
+      <div class="status-grid">
+        <div class="status-card">
+          <span class="status-label">Stage 1 Detection</span>
+          <strong class="status-metric">SAHI F1: 0.40</strong>
+          <p>Measured with sliced inference on NAIP Santa Cruz val set &mdash; the production metric, harder than mAP50. Beta gate is 0.55; GA gate is 0.65.</p>
+        </div>
+        <div class="status-card">
+          <span class="status-label">Stage 2 Risk Model</span>
+          <strong class="status-metric">0.63 CV AUC</strong>
+          <p>Honest spatial cross-validation on NREL panel labels, with a 2022 temporal holdout at 0.66 AUC. GA bar is 0.70.</p>
+        </div>
+        <div class="status-card">
+          <span class="status-label">Beta Caveat</span>
+          <strong class="status-metric">Design-partner ready</strong>
+          <p>Useful for pilots and workflow testing today. Every output carries explicit quality metadata so you always know what you're acting on.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROBLEM -->
+  <section id="problem" class="section bg-light">
+    <div class="container">
+      <span class="section-tag">The Problem</span>
+      <h2>Soiling Costs the Solar Industry <strong>$3–5 Billion</strong> Annually</h2>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <span class="stat-num">3–5%</span>
+          <span class="stat-label">Average annual energy loss from soiling worldwide</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-num">25%+</span>
+          <span class="stat-label">Loss in arid regions without proactive cleaning</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-num">$40B</span>
+          <span class="stat-label">Projected O&amp;M spend by 2030 — much of it reactive</span>
+        </div>
+      </div>
+      <p class="section-body">
+        Most operators rely on fixed cleaning schedules or costly soiling sensors.
+        Both leave money on the table: you either clean too early or discover
+        losses too late. <strong>There's no scalable way to see what's actually
+        on your panels.</strong>
+      </p>
+    </div>
+  </section>
+
+  <!-- SOLUTION -->
+  <section id="solution" class="section">
+    <div class="container solution-grid">
+      <div class="solution-text">
+        <span class="section-tag">The Solution</span>
+        <h2>See Every Array. Know Which Ones Need Attention First.</h2>
+        <p>
+          SolarSoiled pulls public NAIP 60cm aerial imagery for your AOI, runs a
+          YOLOv11 segmentation model to detect every solar array, and scores
+          each one for soiling risk using weather, land cover, and site
+          context. No flights, no hardware &mdash; just an AOI and a refresh
+          cadence.
+        </p>
+        <ul class="check-list">
+          <li>Array-level detection via YOLOv11 polygon segmentation</li>
+          <li>Built on public NAIP aerial imagery &mdash; nothing to capture or upload</li>
+          <li>Spatial risk scoring from weather, land cover, and site context</li>
+          <li>Built for beta pilots before full production rollout</li>
+        </ul>
+      </div>
+      <div class="solution-img">
+        <img src="assets/solution-placeholder.svg" alt="Before/after soiling detection on a panel array" />
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how-it-works" class="section bg-dark">
+    <div class="container">
+      <span class="section-tag tag-light">How It Works</span>
+      <h2 class="text-white">From AOI to Cleaning Order in 4 Steps</h2>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-num">01</div>
+          <img src="assets/icon-upload.svg" alt="" class="step-icon" />
+          <h3>Pick an AOI</h3>
+          <p>Define a county, site, or bounding box. We pull the latest public NAIP 60cm aerial coverage automatically.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">02</div>
+          <img src="assets/icon-segment.svg" alt="" class="step-icon" />
+          <h3>Detect &amp; Score</h3>
+          <p>Our YOLOv11 model finds every array, then a risk model scores each one from weather and site context.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">03</div>
+          <img src="assets/icon-map.svg" alt="" class="step-icon" />
+          <h3>Generate Risk Map</h3>
+          <p>A georeferenced risk map highlights the highest-priority arrays for your cleaning crew.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">04</div>
+          <img src="assets/icon-report.svg" alt="" class="step-icon" />
+          <h3>Export &amp; Act</h3>
+          <p>Pull array polygons and per-array risk scores as GeoJSON or CSV, or fetch them via the beta API.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRODUCT OUTPUTS -->
+  <section id="outputs" class="section">
+    <div class="container">
+      <span class="section-tag">Product Outputs</span>
+      <h2>What You Get Today &mdash; and What's Next</h2>
+      <p class="section-body">
+        Beta partners get the first three deliverables today. The cleaning
+        recommendation engine is the next thing we&rsquo;re shipping, and your
+        feedback shapes how it works.
+      </p>
+      <div class="output-grid">
+        <div class="output-card">
+          <img src="assets/icon-map.svg" alt="" class="output-icon" />
+          <h3>Array Detections</h3>
+          <p>Georeferenced GeoJSON of every detected array in your AOI, with model version and confidence on every polygon.</p>
+        </div>
+        <div class="output-card">
+          <img src="assets/icon-heatmap.svg" alt="" class="output-icon" />
+          <h3>Per-Array Risk Scores</h3>
+          <p>A 0&ndash;1 soiling-risk score for each array, derived from weather, land cover, elevation, and site context &mdash; refreshed daily.</p>
+        </div>
+        <div class="output-card">
+          <img src="assets/icon-csv.svg" alt="" class="output-icon" />
+          <h3>Structured Data &amp; API</h3>
+          <p>GeoJSON, CSV, and a beta REST API for <code>/detect</code> and <code>/risk</code>. Every response carries model version and quality metadata.</p>
+        </div>
+        <div class="output-card">
+          <img src="assets/icon-calendar.svg" alt="" class="output-icon" />
+          <h3>Cleaning Recommendations</h3>
+          <p>Rule-based <code>/recommend</code> endpoint ships today &mdash; pairs risk scores with 7-day weather forecasts and your last-cleaned date to flag the optimal cleaning window. ML-based ranking follows once we have partner feedback to train against.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DESIGN PARTNER PROGRAM -->
+  <section id="partners" class="section bg-light">
+    <div class="container">
+      <span class="section-tag">Design Partner Program</span>
+      <h2>Help shape the product. Get free access during beta.</h2>
+      <p class="section-body">
+        We're working with a small group of solar O&amp;M operators and asset owners
+        to refine soiling detection and cleaning recommendations against real fleets.
+        In exchange for feedback and reported clean outcomes, design partners get
+        free access during beta plus direct input on what ships next. Pricing comes
+        after we&rsquo;ve earned it.
+      </p>
+      <div class="partner-grid">
+        <div class="partner-card">
+          <h3>What you get</h3>
+          <ul>
+            <li>Free analyses on your fleet during beta</li>
+            <li>Direct line to the team</li>
+            <li>Custom output formats for your stack</li>
+            <li>First access to GA pricing and features</li>
+          </ul>
+        </div>
+        <div class="partner-card featured">
+          <div class="badge">Mutual Win</div>
+          <h3>What we ask</h3>
+          <ul>
+            <li>~30 min/month of feedback calls</li>
+            <li>Pre/post-clean energy data when you clean</li>
+            <li>Honest opinions on what's working &mdash; and isn't</li>
+          </ul>
+        </div>
+        <div class="partner-card">
+          <h3>Ideal partner</h3>
+          <ul>
+            <li>Operates 1+ MW of PV</li>
+            <li>Sites within CONUS NAIP coverage (anywhere in the lower 48)</li>
+            <li>Tracks per-array energy production</li>
+          </ul>
+        </div>
+      </div>
+      <div class="partner-cta">
+        <a href="#cta" class="btn btn-lg">Apply to be a Partner</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section id="cta" class="section cta-section">
+    <div class="container cta-inner">
+      <h2>Ready to See Where Soiling Is Eating Your Yield?</h2>
+      <p>Join the early-access program and get your first analysis free.</p>
+      <form class="cta-form" action="https://formsubmit.co/solarsoil.app@gmail.com" method="POST">
+        <input type="email" name="email" placeholder="you@company.com" required />
+        <input type="hidden" name="_subject" value="SolarSoiled — new early-access signup" />
+        <input type="hidden" name="_captcha" value="false" />
+        <input type="hidden" name="_template" value="table" />
+        <button type="submit" class="btn btn-lg">Get Early Access</button>
+      </form>
+      <p class="cta-fine">No credit card required &bull; Beta onboarding via a 30-min intro call</p>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <p>&copy; 2026 SolarSoiled. All rights reserved.</p>
+      <ul class="footer-links">
+        <li><a href="#">Privacy</a></li>
+        <li><a href="#">Terms</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script>
+    const hamburger = document.getElementById('hamburger');
+    const navLinks  = document.getElementById('nav-links');
+    hamburger.addEventListener('click', () => {
+      const open = navLinks.classList.toggle('open');
+      hamburger.setAttribute('aria-expanded', open);
+    });
+    navLinks.querySelectorAll('a').forEach(a =>
+      a.addEventListener('click', () => {
+        navLinks.classList.remove('open');
+        hamburger.setAttribute('aria-expanded', false);
+      })
+    );
+  </script>
+</body>
+</html>

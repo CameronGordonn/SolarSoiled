@@ -1,0 +1,36 @@
+# Smoke-test experiments for CPU or low-VRAM machines.
+# 10-epoch runs to verify the data pipeline works before committing to overnight training.
+# Use the laptop preset (batch=1, imgsz=512) on the RTX 3060 if GPU is unavailable.
+
+rtx3060_presets:
+  laptop:
+    batch: 1
+    imgsz: 512
+    accumulate: 1
+
+experiments:
+  - name: laptop_smoke_v11n
+    model: models/yolo11n-seg.pt
+    preset: laptop
+    epochs: 10
+    degrees: 0.0
+    shear: 0.0
+    perspective: 0.0
+    scale: 0.5
+    mosaic: 1.0
+    close_mosaic: 0
+    copy_paste: 0.0
+    cos_lr: false
+
+  - name: laptop_aug_v11n
+    model: models/yolo11n-seg.pt
+    preset: laptop
+    epochs: 10
+    degrees: 8.0
+    shear: 3.0
+    perspective: 0.05
+    scale: 0.6
+    mosaic: 0.7
+    close_mosaic: 0
+    copy_paste: 0.0
+    cos_lr: false

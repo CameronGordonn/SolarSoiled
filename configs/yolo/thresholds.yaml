@@ -1,0 +1,6 @@
+threshold_sweep:
+  confidence: [0.10, 0.15, 0.20, 0.25, 0.30, 0.40]
+  iou: [0.50, 0.60, 0.70]
+  split: val
+  imgsz: 640
+  target_metric: f1

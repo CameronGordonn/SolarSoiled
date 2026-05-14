@@ -1,0 +1,58 @@
+# Fine-tune config: adapt a pre-trained checkpoint to NAIP Santa Cruz.
+#
+# NOTE: The current Phase 4 strategy uses joint training (experiments_joint_train.yaml)
+# rather than separate pre-train → fine-tune. Use this config only if you have a
+# pre-trained checkpoint you want to adapt with a low learning rate.
+#
+# Update the model: paths below to point to your actual checkpoint before running.
+# Low LR (lr0: 0.001) is critical — it preserves learned features during fine-tuning.
+
+data: data/yolo/naip/data.yaml
+
+rtx3060_presets:
+  laptop:
+    batch: 1
+    imgsz: 512
+    accumulate: 1
+  small:
+    batch: 8
+    imgsz: 640
+    accumulate: 1
+  medium:
+    batch: 4
+    imgsz: 768
+    accumulate: 2
+  large:
+    batch: 2
+    imgsz: 896
+    accumulate: 4
+
+experiments:
+  # Update model paths to match your actual pre-trained checkpoint directory.
+  - name: naip_finetune_v11s_e50
+    model: runs/segment/runs/segment/<pretrained_run>/weights/best.pt
+    preset: small
+    epochs: 50
+    lr0: 0.001
+    degrees: 10.0
+    shear: 5.0
+    perspective: 0.1
+    scale: 0.6
+    mosaic: 0.8
+    close_mosaic: 10
+    copy_paste: 0.3
+    cos_lr: true
+
+  - name: naip_finetune_v11m_e50
+    model: runs/segment/runs/segment/<pretrained_run>/weights/best.pt
+    preset: medium
+    epochs: 50
+    lr0: 0.001
+    degrees: 10.0
+    shear: 5.0
+    perspective: 0.1
+    scale: 0.6
+    mosaic: 0.8
+    close_mosaic: 10
+    copy_paste: 0.3
+    cos_lr: true

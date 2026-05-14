@@ -1,0 +1,61 @@
+# Primary experiment matrix: NAIP Santa Cruz only.
+# Use for baseline runs and ablation studies on the target domain.
+# For joint Duke + NAIP training, see experiments_joint_train.yaml.
+
+rtx3060_presets:
+  laptop:
+    batch: 1
+    imgsz: 512
+    accumulate: 1
+  small:
+    batch: 8
+    imgsz: 640
+    accumulate: 1
+  medium:
+    batch: 4
+    imgsz: 768
+    accumulate: 2
+  large:
+    batch: 2
+    imgsz: 896
+    accumulate: 4
+
+experiments:
+  - name: baseline_v11s_small
+    model: models/yolo11s-seg.pt
+    preset: small
+    epochs: 50
+    degrees: 0.0
+    shear: 0.0
+    perspective: 0.0
+    scale: 0.5
+    mosaic: 1.0
+    close_mosaic: 10
+    copy_paste: 0.0
+    cos_lr: false
+
+  - name: aug_v11s_small
+    model: models/yolo11s-seg.pt
+    preset: small
+    epochs: 50
+    degrees: 10.0
+    shear: 5.0
+    perspective: 0.1
+    scale: 0.6
+    mosaic: 0.8
+    close_mosaic: 10
+    copy_paste: 0.3
+    cos_lr: true
+
+  - name: aug_v11m_medium
+    model: models/yolo11m-seg.pt
+    preset: medium
+    epochs: 50
+    degrees: 10.0
+    shear: 5.0
+    perspective: 0.1
+    scale: 0.6
+    mosaic: 0.8
+    close_mosaic: 10
+    copy_paste: 0.3
+    cos_lr: true

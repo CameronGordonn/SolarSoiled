@@ -1,0 +1,99 @@
+# SolarSoiled model registry.
+#
+# Single source of truth mapping semantic model names to weight files plus the
+# metadata that flows into every `manifest.json`. The CLI's `--weights` flag
+# accepts a registered name, an alias, or a filesystem path (passthrough mode).
+#
+# Add a new entry whenever a training cut produces weights worth shipping.
+# Keep `aliases.production` pointed at the safe checkpoint and bump
+# `aliases.latest` to whatever's freshest (may be the same as production).
+
+schema_version: 1
+
+models:
+  stage1-v0.5-baseline:
+    path: models/sahi_baseline_train7.pt
+    stage: stage1
+    map50_test: 0.563
+    map50_calibrated_val: 0.687
+    sahi_f1_val: 0.345
+    sahi_conf_val: 0.15
+    beta: true
+    notes: NAIP-only baseline, SAHI warm start. Superseded by r2-cameron-20260509.
+    known_limitations:
+      - Below 70% mAP50 GA target
+      - Trained on Santa Cruz NAIP only; cross-region generalization unverified
+
+  r0-cameron-20260510:
+    path: models/r0_cameron_20260510.pt
+    stage: stage1
+    map50_test: 0.346
+    map50_test_precision: 0.426
+    map50_test_recall: 0.465
+    beta: true
+    notes: R0 retrain from SAHI warm-start on relabeled NAIP, trained 2026-05-10 on Colab. Regression vs sahi baseline — do not use as production.
+    known_limitations:
+      - Regression from sahi_baseline_train7 (0.346 vs 0.563 NAIP test mAP50)
+      - Trained on Santa Cruz NAIP only; cross-region generalization unverified
+
+  r2-cameron-20260509:
+    path: models/r2_cameron_20260509.pt
+    stage: stage1
+    map50_test: 0.263
+    sahi_f1_val: 0.396
+    sahi_conf_val: 0.40
+    beta: true
+    notes: R2 joint NAIP+Duke (naip_repeat=200), trained 2026-05-09 on Colab. Best available SAHI F1 on current val labels (0.396 vs baseline 0.345). map50 is low because model relies on SAHI slicing.
+    known_limitations:
+      - Below 70% mAP50 GA target
+      - map50 (non-SAHI) is 0.263 — model depends on SAHI inference path
+      - Trained on Santa Cruz NAIP only; cross-region generalization unverified
+
+  yolo11s-base:
+    path: models/yolo11s-seg.pt
+    stage: stage1-pretrained
+    beta: true
+    notes: Ultralytics base weights. Not for production; warm-start only.
+    known_limitations:
+      - Generic COCO-pretrained; no solar-array fine-tuning
+
+  yolo11m-base:
+    path: models/yolo11m-seg.pt
+    stage: stage1-pretrained
+    beta: true
+    notes: Ultralytics base weights. Not for production; warm-start only.
+    known_limitations:
+      - Generic COCO-pretrained; no solar-array fine-tuning
+
+  yolov8s-solar-v1:
+    path: models/yolov8s_solar_array_v1.pt
+    stage: stage1-legacy
+    beta: true
+    notes: Pre-Phase-4 v8s checkpoint. Kept for regression comparison only.
+    known_limitations:
+      - YOLOv8 architecture; superseded by stage1-v0.5-baseline
+
+aliases:
+  production: r2-cameron-20260509
+  latest: r2-cameron-20260509
+
+# ── Stage 2 soiling models ───────────────────────────────────────────────────
+# Same resolution rules as `models`: name, alias, or filesystem path to model.ubj.
+
+soiling_models:
+  run_k_patched_holdout2022:
+    path: runs/soiling/run_k_patched_holdout2022/model.ubj
+    stage: stage2
+    cv_auc: 0.630
+    holdout_auc: 0.655
+    holdout_year: 2022
+    beta: true
+    notes: NREL panel labels, 10 km spatial CV, isotonic calibrated, leakage-free medians. Production-safe beta checkpoint.
+    known_limitations:
+      - Below 0.70 AUC GA bar
+      - AQ features sparse pre-2022; PM columns dropped at training
+      - N≈640 training rows; limited by NREL station count
+
+soiling_aliases:
+  soiling_production: run_k_patched_holdout2022
+  soiling_latest: run_k_patched_holdout2022

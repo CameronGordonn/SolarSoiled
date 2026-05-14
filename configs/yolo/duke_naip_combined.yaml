@@ -1,0 +1,35 @@
+# Combined dataset: Duke 160px tiles + NAIP Santa Cruz 640px tiles.
+# Used for joint training in experiments_joint_train.yaml.
+#
+# Split strategy: geographic holdout — entire source ortho images go to one
+# split, never individual tiles. Adjacent tiles from the same area are highly
+# correlated; random tile splits inflate metrics via spatial leakage.
+#
+# Val includes both NAIP and Duke so training curves reflect small-array
+# learning, not just the target domain. Duke val is large (~1500-3000 tiles) —
+# subsample to ~150 tiles in 02f_clean_duke_dataset.py if it dominates mAP.
+#
+# After training, run 05_evaluate_yolov8_seg.py separately per dataset to get
+# per-domain mAP (see docs/PHASE1_HANDOFF.md or scripts/05e_ramp_eval.py).
+#
+# Adding Stanford or new NAIP areas: append paths under train/val/test.
+# Never mix tiles from the same geographic area across train and val/test.
+
+train:
+  - data/yolo/duke_160/images/train
+  - data/yolo/naip/images/train
+  # - data/yolo/stanford/images/train
+
+val:
+  - data/yolo/naip/images/val
+  - data/yolo/duke_160/images/val
+  # - data/yolo/stanford/images/val
+
+test:
+  - data/yolo/naip/images/test
+  - data/yolo/duke_160/images/test
+  # - data/yolo/stanford/images/test
+
+nc: 1
+names:
+  0: solar_array

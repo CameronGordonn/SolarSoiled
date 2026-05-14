@@ -1,0 +1,24 @@
+# Region scope for the Stage 2 soiling risk model. Filename is historical — the
+# default config now trains nationally on the full NREL station set. Set bbox
+# to a [minx, miny, maxx, maxy] list in EPSG:4326 to restrict to one region.
+region: national
+bbox: null                            # null → no geographic filter
+target_crs: EPSG:32610                # same as detection pipeline
+
+label_source: nrel_panel              # kimber_proxy | nrel_soiling_map | nrel_panel
+nrel_csv_path: data/external/nrel_soiling_map.csv
+nrel_panel_csv_path: data/external/nrel_soiling_map_annual.csv
+iwsr_risk_threshold: 0.97             # below this → label=1 (at-risk). 0.97 is the conventional NREL clean/dirty cutoff; for kimber_proxy on 180d CA weather 0.93 was used to balance the synthetic split.
+drop_censored: true                   # drop NREL rows with iwsr=">0.99" (109/255 are censored). False keeps them at 0.995.
+
+weather_history_days: 180             # rolling feature lookback
+as_of_default: null                   # null → today (UTC)
+cache_dir: .cache/soiling
+
+# Optional NLCD raster path for land-cover sampling (deprecated, see static_features_csv).
+nlcd_path: null
+
+# Pre-computed per-station static features (elevation, WorldCover, distances).
+# Built by scripts/13_build_static_features.py. If null, train falls back to
+# live API calls per row.
+static_features_csv: data/external/static_features.csv

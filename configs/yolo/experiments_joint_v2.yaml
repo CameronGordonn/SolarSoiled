@@ -1,0 +1,63 @@
+# Joint training v2 — Track C remediation for the 0426 regression.
+#
+# Goal: NAIP test mAP50 returns to >= 0.56 baseline (v1 hit 0.275) AND
+# Duke test mAP50 >= 0.10 (v1 hit 0.010 — Duke was being ignored).
+#
+# Hyperparameters match v1 (joint_duke160_naip_v11s_e100) so the change
+# is isolated to sampling + val composition.
+
+data: data/yolo/joint_v2/data.yaml
+
+rtx3060_presets:
+  laptop:
+    batch: 1
+    imgsz: 512
+    accumulate: 1
+  small:
+    batch: 8
+    imgsz: 640
+    accumulate: 1
+  medium:
+    batch: 4
+    imgsz: 768
+    accumulate: 2
+
+experiments:
+  # Warm start from the 0.563-on-test Train 7 weights (sahi_baseline_train7.pt)
+  # rather than COCO. The model already encodes NAIP solar arrays — joint v2's
+  # job is to add Duke without forgetting NAIP.
+  #
+  # optimizer must be set explicitly. With optimizer=auto (the ultralytics
+  # default) lr0 is silently overridden to AdamW(lr=0.002), which destroys the
+  # warm-start weights inside epoch 1 — confirmed by sanity runs (Box mAP50
+  # collapsed from 0.696 to 0.004 in one epoch). SGD + lr0=0.001 preserves the
+  # warm start (Box mAP50 0.41 after 1 partial epoch).
+  #
+  # Augmentation is also damped vs the original config: copy_paste, mosaic,
+  # perspective, degrees and shear were aggressive enough to add noise faster
+  # than the warm-start could absorb new Duke gradients.
+  #
+  # IMPORTANT: auto_augment and erasing must also be set explicitly. Ultralytics'
+  # default config sets auto_augment=randaugment and erasing=0.4; YAML omission
+  # lets those defaults pass through to model.train(). RandAugment composes
+  # affine + perspective + posterize + solarize at high magnitude, which on
+  # 160 px Duke chips produces the radial-starburst train tiles that broke the
+  # joint_v2_duke160_naip_v11s_e1002 run (NAIP val mAP50 collapsed to ~0.247
+  # vs the 0.563 baseline). Keep these two damped alongside the geometric knobs.
+  - name: joint_v2_duke160_naip_v11s_e100
+    model: models/sahi_baseline_train7.pt
+    preset: small
+    epochs: 100
+    optimizer: SGD
+    lr0: 0.001
+    degrees: 5.0
+    shear: 2.0
+    perspective: 0.0
+    scale: 0.5
+    mosaic: 0.5
+    close_mosaic: 5
+    copy_paste: 0.0
+    auto_augment: null
+    erasing: 0.0
+    translate: 0.0
+    cos_lr: true

@@ -1,0 +1,39 @@
+# version control
+.git
+.github
+
+# data — always mounted at runtime, never baked in
+data/
+outputs/
+runs/
+.cache/
+
+# model weights — mount via -v $(pwd)/models:/app/models
+models/*.pt
+models/*.pt:Zone.Identifier
+
+# dev / notebook artifacts
+notebooks/
+*.ipynb
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+
+# local env / secrets
+.env
+*.env
+conda-lock.yml
+environment.yml
+
+# landing page (not part of the CLI image)
+solarsoiled-landing/
+build_solarsoiled.py
+
+# docs
+docs/
+*.md
+!README.md

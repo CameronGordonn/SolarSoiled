@@ -1,0 +1,64 @@
+# Joint training config: Duke 160px tiles + NAIP Santa Cruz, trained together.
+#
+# Why joint instead of pre-train → fine-tune:
+#   Both datasets are 0.6m GSD NAIP. Domain gap is small (different cities,
+#   same sensor). Training jointly anchors the model to the target domain
+#   while Duke provides scale, avoiding the "corrupted weights" failure mode
+#   from the 320px pre-train attempt.
+#
+# Tile size strategy at imgsz=640:
+#   Duke 160px tiles  → 4.0x upscale → ~48px effective object size ✓
+#   NAIP 640px tiles  → 1.0x (natural scale, same as 56% baseline) ✓
+#
+# Validation uses NAIP-only val split — that's the target domain.
+# Duke val is excluded because it's noisier and not what we're optimizing for.
+#
+# Prerequisites:
+#   1. Duke 160px tiles in data/yolo/duke_160/ (run 02d + 02f)
+#   2. NAIP Santa Cruz tiles in data/yolo/naip/ (already done)
+#
+# Dataset config (multi-path — Ultralytics supports lists under train:):
+data: configs/yolo/duke_naip_combined.yaml
+
+rtx3060_presets:
+  laptop:
+    batch: 1
+    imgsz: 512
+    accumulate: 1
+  small:
+    batch: 8
+    imgsz: 640
+    accumulate: 1
+  medium:
+    batch: 4
+    imgsz: 768
+    accumulate: 2
+
+experiments:
+  # Primary: joint train v11s, 100 epochs, full augmentation + copy-paste
+  - name: joint_duke160_naip_v11s_e100
+    model: models/yolo11s-seg.pt
+    preset: small
+    epochs: 100
+    degrees: 10.0
+    shear: 5.0
+    perspective: 0.1
+    scale: 0.6
+    mosaic: 1.0
+    close_mosaic: 15
+    copy_paste: 0.3
+    cos_lr: true
+
+  # Secondary: larger model for higher ceiling
+  - name: joint_duke160_naip_v11m_e100
+    model: models/yolo11m-seg.pt
+    preset: medium
+    epochs: 100
+    degrees: 10.0
+    shear: 5.0
+    perspective: 0.1
+    scale: 0.6
+    mosaic: 1.0
+    close_mosaic: 15
+    copy_paste: 0.3
+    cos_lr: true

@@ -1,0 +1,76 @@
+# Duke pre-train config.
+#
+# Tile size → effective object size at training imgsz:
+#   640px tiles + imgsz=640  →  1.0x  (~12px median, too small)
+#   320px tiles + imgsz=1024 →  3.2x  (~35px median, borderline — prev attempt)
+#   160px tiles + imgsz=1024 →  6.4x  (~77px median, solid ✓)  ← recommended
+#
+# RTX 3060 VRAM budget for 160px tiles + imgsz=1024:
+#   v11s batch=1, accumulate=8: ~4-5 GB ✓
+#   v11m batch=1, accumulate=8: ~6-7 GB ✓
+#
+# Conversion commands before running these experiments:
+#   python scripts/02d_convert_duke_dataset.py \
+#     --tile-size 160 \
+#     --output-dir data/yolo/duke_160 \
+#     --tile-index data/interim/duke_160_tile_index.json \
+#     --max-empty-ratio 0.15
+#   python scripts/02f_clean_duke_dataset.py --dataset-dir data/yolo/duke_160
+
+data: data/yolo/duke_160/data.yaml
+
+rtx3060_presets:
+  laptop:
+    batch: 1
+    imgsz: 512
+    accumulate: 1
+  small:
+    batch: 8
+    imgsz: 640
+    accumulate: 1
+  medium:
+    batch: 4
+    imgsz: 768
+    accumulate: 2
+  large:
+    batch: 2
+    imgsz: 896
+    accumulate: 4
+  small_obj:
+    batch: 2
+    imgsz: 1024
+    accumulate: 4
+  # 160px tiles — 6.4x upscale gives ~77px effective object size
+  tiny_obj:
+    batch: 1
+    imgsz: 1024
+    accumulate: 8   # effective batch = 8
+
+experiments:
+  # Primary: 160px tiles + imgsz=1024 → ~77px effective (solid for segmentation)
+  - name: duke_pretrain_v11s_tinyobj_e100
+    model: models/yolo11s-seg.pt
+    preset: tiny_obj
+    epochs: 100
+    degrees: 5.0
+    shear: 2.0
+    perspective: 0.05
+    scale: 0.5
+    mosaic: 1.0
+    close_mosaic: 10
+    copy_paste: 0.3
+    cos_lr: true
+
+  # Secondary: larger model
+  - name: duke_pretrain_v11m_tinyobj_e100
+    model: models/yolo11m-seg.pt
+    preset: tiny_obj
+    epochs: 100
+    degrees: 5.0
+    shear: 2.0
+    perspective: 0.05
+    scale: 0.5
+    mosaic: 1.0
+    close_mosaic: 10
+    copy_paste: 0.3
+    cos_lr: true

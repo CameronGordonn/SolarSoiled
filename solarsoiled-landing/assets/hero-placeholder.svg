@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <defs>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+    </pattern>
+    <filter id="blur2"><feGaussianBlur stdDeviation="2"/></filter>
+  </defs>
+
+  <!-- aerial imagery background -->
+  <rect width="800" height="500" fill="#1c2b3a"/>
+  <rect width="800" height="500" fill="url(#grid)"/>
+
+  <!-- terrain texture blocks -->
+  <rect x="0"   y="0"   width="260" height="180" fill="#1e3040" opacity=".7"/>
+  <rect x="260" y="0"   width="300" height="140" fill="#243545" opacity=".6"/>
+  <rect x="560" y="0"   width="240" height="200" fill="#1a2a38" opacity=".7"/>
+  <rect x="0"   y="320" width="340" height="180" fill="#1e3040" opacity=".6"/>
+  <rect x="340" y="360" width="460" height="140" fill="#243545" opacity=".5"/>
+
+  <!-- road lines -->
+  <line x1="0" y1="220" x2="800" y2="235" stroke="#2a3f54" stroke-width="8"/>
+  <line x1="400" y1="0" x2="415" y2="500" stroke="#2a3f54" stroke-width="6"/>
+
+  <!-- Array cluster A — residential, low risk (green) -->
+  <polygon points="60,60 160,55 165,130 65,135" fill="rgba(72,199,120,0.25)" stroke="#48c778" stroke-width="1.5"/>
+  <polygon points="70,145 150,140 155,190 75,195" fill="rgba(72,199,120,0.25)" stroke="#48c778" stroke-width="1.5"/>
+  <!-- confidence label -->
+  <rect x="155" y="58" width="42" height="18" rx="3" fill="#48c778" opacity=".9"/>
+  <text x="176" y="71" text-anchor="middle" font-family="monospace" font-size="10" fill="#0f2027" font-weight="bold">0.87</text>
+
+  <!-- Array cluster B — commercial, medium risk (yellow) -->
+  <polygon points="290,50 490,45 498,120 295,125" fill="rgba(247,183,49,0.25)" stroke="#F7B731" stroke-width="2"/>
+  <polygon points="295,132 495,128 498,168 295,172" fill="rgba(247,183,49,0.25)" stroke="#F7B731" stroke-width="2"/>
+  <rect x="438" y="48" width="42" height="18" rx="3" fill="#F7B731" opacity=".9"/>
+  <text x="459" y="61" text-anchor="middle" font-family="monospace" font-size="10" fill="#0f2027" font-weight="bold">0.91</text>
+
+  <!-- Array cluster C — utility, high risk (orange-red) -->
+  <polygon points="580,30 740,28 748,90 585,95" fill="rgba(255,107,53,0.3)" stroke="#ff6b35" stroke-width="2"/>
+  <polygon points="580,100 748,98 750,150 582,155" fill="rgba(255,107,53,0.3)" stroke="#ff6b35" stroke-width="2"/>
+  <polygon points="580,160 748,158 750,200 583,205" fill="rgba(220,50,47,0.3)" stroke="#dc322f" stroke-width="2"/>
+  <rect x="688" y="32" width="42" height="18" rx="3" fill="#ff6b35" opacity=".9"/>
+  <text x="709" y="45" text-anchor="middle" font-family="monospace" font-size="10" fill="#fff" font-weight="bold">0.94</text>
+
+  <!-- Array cluster D — rooftop scatter, below road -->
+  <polygon points="50,270 120,265 124,315 54,320" fill="rgba(72,199,120,0.25)" stroke="#48c778" stroke-width="1.5"/>
+  <polygon points="135,268 195,262 200,308 140,313" fill="rgba(72,199,120,0.25)" stroke="#48c778" stroke-width="1.5"/>
+  <polygon points="210,270 260,265 264,310 214,315" fill="rgba(247,183,49,0.2)" stroke="#F7B731" stroke-width="1.5"/>
+
+  <!-- Array cluster E — large ground-mount, partial -->
+  <polygon points="440,280 720,274 728,380 448,388" fill="rgba(255,107,53,0.25)" stroke="#ff6b35" stroke-width="2"/>
+  <rect x="668" y="278" width="42" height="18" rx="3" fill="#ff6b35" opacity=".9"/>
+  <text x="689" y="291" text-anchor="middle" font-family="monospace" font-size="10" fill="#fff" font-weight="bold">0.78</text>
+
+  <!-- cluster F — bottom left -->
+  <polygon points="30,400 180,394 186,450 36,456" fill="rgba(72,199,120,0.25)" stroke="#48c778" stroke-width="1.5"/>
+  <polygon points="190,396 310,390 316,440 196,446" fill="rgba(247,183,49,0.2)" stroke="#F7B731" stroke-width="1.5"/>
+
+  <!-- Info badge -->
+  <rect x="16" y="458" width="272" height="30" rx="6" fill="rgba(15,32,39,.82)"/>
+  <circle cx="32" cy="473" r="6" fill="#48c778"/>
+  <text x="44" y="477" font-family="Inter,system-ui,sans-serif" font-size="11" fill="rgba(255,255,255,.9)">334 arrays detected · Santa Cruz, CA · NAIP 60 cm</text>
+
+  <!-- Risk legend -->
+  <rect x="612" y="420" width="172" height="68" rx="6" fill="rgba(15,32,39,.82)"/>
+  <text x="624" y="437" font-family="Inter,system-ui,sans-serif" font-size="10" fill="rgba(255,255,255,.6)" font-weight="600" letter-spacing="1">SOILING RISK</text>
+  <rect x="624" y="443" width="12" height="12" rx="2" fill="#48c778"/>
+  <text x="642" y="453" font-family="Inter,system-ui,sans-serif" font-size="10" fill="rgba(255,255,255,.8)">Low</text>
+  <rect x="672" y="443" width="12" height="12" rx="2" fill="#F7B731"/>
+  <text x="690" y="453" font-family="Inter,system-ui,sans-serif" font-size="10" fill="rgba(255,255,255,.8)">Medium</text>
+  <rect x="624" y="462" width="12" height="12" rx="2" fill="#ff6b35"/>
+  <text x="642" y="472" font-family="Inter,system-ui,sans-serif" font-size="10" fill="rgba(255,255,255,.8)">High</text>
+  <rect x="672" y="462" width="12" height="12" rx="2" fill="#dc322f"/>
+  <text x="690" y="472" font-family="Inter,system-ui,sans-serif" font-size="10" fill="rgba(255,255,255,.8)">Critical</text>
+
+  <!-- model badge -->
+  <rect x="612" y="394" width="172" height="22" rx="6" fill="rgba(44,83,100,.9)"/>
+  <text x="698" y="408" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="rgba(255,255,255,.75)">YOLOv11 · SAHI F1 0.40 · beta</text>
+</svg>
