@@ -33,3 +33,16 @@ sahi>=0.11
 # Stage 2 — soiling risk model
 requests-cache>=1.1
 PyYAML>=6.0
+
+# Backbone ablation (scripts/03c_train_lightning.py)
+pytorch-lightning>=2.0
+timm>=0.9
+torchmetrics>=1.0
+
+# Interactive map output (solarsoiled viz)
+folium>=0.14
+
+# SAM zero-shot comparison (scripts/05f_sam_comparison.py)
+# Checkpoint download: see script header for wget commands
+# Install: pip install git+https://github.com/facebookresearch/segment-anything.git
+# segment-anything

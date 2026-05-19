@@ -439,5 +439,42 @@ def eval(
         mod.main(argv)
 
 
+@app.command()
+def viz(
+    aoi: str = typer.Option(..., "--aoi", help="bbox 'minx,miny,maxx,maxy' OR path to GeoJSON polygon"),
+    partner_id: str | None = typer.Option(None, "--partner-id", help="Override AOI directory name"),
+    basemap: str = typer.Option("satellite", "--basemap", help="Basemap style: satellite | osm | topo"),
+    out: Path | None = typer.Option(None, "--out", help="Override output HTML path"),
+) -> None:
+    """Render an interactive soiling-risk map from risk.geojson → risk_map.html."""
+    from solarsoiled.viz import build_risk_map
+
+    _, paths = _resolve_aoi(aoi, partner_id)
+
+    if not paths.risk_geojson.exists():
+        typer.echo(
+            f"risk.geojson not found at {paths.risk_geojson}. "
+            "Run `solarsoiled score` first.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    out_path = out or (paths.root / "risk_map.html")
+    rec_json = paths.recommendations_json if paths.recommendations_json.exists() else None
+
+    build_risk_map(paths.risk_geojson, out_path, recommendations_json=rec_json, basemap=basemap)
+
+    write_manifest(
+        paths.root,
+        stage="eval",
+        model_version="viz",
+        inputs=[str(paths.risk_geojson)],
+        metrics={},
+        known_limitations=[],
+        filename="manifest.viz.json",
+    )
+    typer.echo(f"viz → {out_path}")
+
+
 if __name__ == "__main__":
     app()
