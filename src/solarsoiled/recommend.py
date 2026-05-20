@@ -172,6 +172,68 @@ def recommend_cleaning(
     }
 
 
+def recommend_per_array(
+    risk_geojson: Path,
+    aoi_recommendation: dict,
+    *,
+    risk_threshold: float = 0.6,
+) -> list[dict]:
+    """Return a list of per-array recommendation dicts.
+
+    Uses the AOI-level weather window from aoi_recommendation but gates
+    each array independently by its own risk_score.
+
+    Each item: {array_id, risk_score, cleaning_window, priority, action}
+      cleaning_window: "YYYY-MM-DD → YYYY-MM-DD" or None
+      priority: "high" | "medium" | "low"
+      action: "clean" | "monitor"
+    """
+    gdf = gpd.read_file(risk_geojson)
+
+    window_start = aoi_recommendation.get("window_start")
+    window_end = aoi_recommendation.get("window_end")
+    rule_fired = aoi_recommendation.get("rule_fired", "")
+
+    window_open = rule_fired == "weather_window_open" and window_start
+
+    rows = []
+    for _, row in gdf.iterrows():
+        score = float(row.get("risk_score") or 0.0)
+        aid = int(row.get("array_id", -1))
+
+        if not window_open or score < risk_threshold:
+            priority = "low" if score < 0.5 else "medium"
+            rows.append({
+                "array_id": aid,
+                "risk_score": round(score, 3),
+                "cleaning_window": None,
+                "priority": priority,
+                "action": "monitor",
+            })
+        else:
+            _, (recovery_lo, recovery_hi) = _bucket(score)
+            priority = "high" if score >= 0.75 else "medium"
+            rows.append({
+                "array_id": aid,
+                "risk_score": round(score, 3),
+                "cleaning_window": f"{window_start} → {window_end}",
+                "priority": priority,
+                "action": "clean",
+                "expected_recovery_pct": [recovery_lo, recovery_hi],
+            })
+
+    rows.sort(key=lambda r: (r["action"] != "clean", -r["risk_score"]))
+    return rows
+
+
+def write_array_recommendations(out_path: Path, rows: list[dict]) -> Path:
+    """Write array_recommendations.json — list of per-array dicts."""
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(rows, indent=2) + "\n", encoding="utf-8")
+    return out_path
+
+
 def write_recommendation(
     out_path: Path,
     payload: dict,
