@@ -23,8 +23,10 @@ spatial_cv:
 # Weight training rows by inverse IWSR-CI width; stations with tighter NREL
 # bounds pull the model harder than noisier ones.
 sample_weights:
-  mode: iwsr_ci_width                 # iwsr_ci_width | uniform
+  mode: uniform                       # iwsr_ci_width | uniform — kimber_proxy has no CI bounds; use uniform
   clip_percentiles: [5, 95]
+  feedback_weight_multiplier: 3.0     # partner clean-event rows weighted this many × NREL proxy rows
+  summary_weight_factor: 0.5          # summary-only NREL rows (no annual breakdown) weighted at half panel rows
 
 # Minimum spatial CV AUC to consider the model shippable.
 acceptance:

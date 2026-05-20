@@ -1,0 +1,116 @@
+{
+  "type": "FeatureCollection",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -122.03,
+              36.974
+            ],
+            [
+              -122.0299,
+              36.974
+            ],
+            [
+              -122.0299,
+              36.9741
+            ],
+            [
+              -122.03,
+              36.9741
+            ],
+            [
+              -122.03,
+              36.974
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": 0,
+        "class_id": 0,
+        "class_name": "solar_array"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -122.028,
+              36.975
+            ],
+            [
+              -122.0279,
+              36.975
+            ],
+            [
+              -122.0279,
+              36.975100000000005
+            ],
+            [
+              -122.028,
+              36.975100000000005
+            ],
+            [
+              -122.028,
+              36.975
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": 1,
+        "class_id": 0,
+        "class_name": "solar_array"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -122.031,
+              36.973
+            ],
+            [
+              -122.0309,
+              36.973
+            ],
+            [
+              -122.0309,
+              36.9731
+            ],
+            [
+              -122.031,
+              36.9731
+            ],
+            [
+              -122.031,
+              36.973
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "id": 2,
+        "class_id": 0,
+        "class_name": "solar_array"
+      }
+    }
+  ]
+}

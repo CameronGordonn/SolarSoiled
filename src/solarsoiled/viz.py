@@ -51,6 +51,7 @@ def build_risk_map(
     out_html: Path,
     *,
     recommendations_json: Path | None = None,
+    array_recommendations_json: Path | None = None,
     basemap: str = "satellite",
 ) -> Path:
     """Render risk.geojson as an interactive Folium map, write to out_html.
@@ -78,23 +79,42 @@ def build_risk_map(
             stacklevel=2,
         )
 
-    # Optionally join cleaning windows from recommendations.json
-    rec_by_id: dict[int, str] = {}
+    # Load AOI-level summary (for the centroid popup)
+    aoi_summary: dict = {}
     if recommendations_json and Path(recommendations_json).exists():
         try:
-            raw = json.loads(Path(recommendations_json).read_text())
+            aoi_summary = json.loads(Path(recommendations_json).read_text())
+        except Exception:
+            pass
+
+    # Join per-array cleaning data; prefer array_recommendations_json over the
+    # AOI-level file (which has no per-array structure).
+    rec_by_id: dict[int, dict] = {}
+    _arr_rec_path = array_recommendations_json or (
+        recommendations_json if recommendations_json and Path(recommendations_json).exists() else None
+    )
+    if _arr_rec_path and Path(_arr_rec_path).exists():
+        try:
+            raw = json.loads(Path(_arr_rec_path).read_text())
             entries = raw if isinstance(raw, list) else raw.get("arrays", [])
             for e in entries:
                 aid = e.get("array_id")
-                window = e.get("cleaning_window") or (e.get("recommendation") or {}).get("window")
-                if aid is not None and window:
-                    rec_by_id[int(aid)] = str(window)
+                if aid is not None:
+                    rec_by_id[int(aid)] = e
         except Exception:
             pass  # recommendations are optional — never crash the map render
 
     has_recs = bool(rec_by_id)
     if has_recs:
-        gdf["cleaning_window"] = gdf["array_id"].map(rec_by_id).fillna("—")
+        gdf["cleaning_window"] = gdf["array_id"].map(
+            lambda a: (rec_by_id.get(int(a)) or {}).get("cleaning_window") or "—"
+        )
+        gdf["action"] = gdf["array_id"].map(
+            lambda a: (rec_by_id.get(int(a)) or {}).get("action") or "—"
+        )
+        gdf["priority"] = gdf["array_id"].map(
+            lambda a: (rec_by_id.get(int(a)) or {}).get("priority") or "—"
+        )
 
     # Round display columns
     if has_risk:
@@ -132,6 +152,8 @@ def build_risk_map(
         ("risk_score", "Risk Score"),
         ("area_m2", "Area (m²)"),
         ("cleaning_window", "Clean by"),
+        ("action", "Action"),
+        ("priority", "Priority"),
     ]:
         if col in gdf.columns:
             tip_fields.append(col)
@@ -151,6 +173,29 @@ def build_risk_map(
 
     if has_risk:
         colormap.add_to(m)
+
+    # AOI-level summary popup pinned to the centroid
+    if aoi_summary:
+        n_actionable = sum(1 for r in rec_by_id.values() if r.get("action") == "clean")
+        n_total = len(rec_by_id) or aoi_summary.get("inputs", {}).get("n_arrays", "?")
+        window_str = (
+            f"{aoi_summary['window_start']} → {aoi_summary['window_end']}"
+            if aoi_summary.get("window_start")
+            else "No window (see rule below)"
+        )
+        summary_html = (
+            "<b>Cleaning recommendation</b><br>"
+            f"Window: {window_str}<br>"
+            f"Confidence: {aoi_summary.get('confidence', '—')}<br>"
+            f"Arrays to clean: {n_actionable} / {n_total}<br>"
+            f"Rule: {aoi_summary.get('rule_fired', '—')}"
+        )
+        folium.Marker(
+            location=center,
+            popup=folium.Popup(summary_html, max_width=280),
+            icon=folium.Icon(color="blue", icon="info-sign"),
+            tooltip="AOI summary (click)",
+        ).add_to(m)
 
     m.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
     folium.LayerControl().add_to(m)

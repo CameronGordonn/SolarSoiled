@@ -23,6 +23,7 @@
         <li><a href="#problem">Problem</a></li>
         <li><a href="#solution">Solution</a></li>
         <li><a href="#how-it-works">How It Works</a></li>
+        <li><a href="#demo">Live Demo</a></li>
         <li><a href="#outputs">Outputs</a></li>
         <li><a href="#partners">Partners</a></li>
       </ul>
@@ -169,6 +170,49 @@
     </div>
   </section>
 
+  <!-- LIVE DEMO -->
+  <section id="demo" class="section">
+    <div class="container">
+      <span class="section-tag">Live Demo</span>
+      <h2>Run a Real Analysis</h2>
+      <p class="section-body">
+        Enter a bounding box and see soiling risk scores computed on real NAIP aerial imagery.
+        Detection results are pre-computed for this demo AOI &mdash; the recommend and map steps run live.
+      </p>
+
+      <div class="demo-panel">
+        <div class="demo-form-row">
+          <div class="demo-field">
+            <label for="demo-aoi">Bounding Box <span class="field-hint">minx,miny,maxx,maxy (WGS84)</span></label>
+            <input id="demo-aoi" type="text" value="-122.05,36.90,-121.85,37.05" spellcheck="false" />
+          </div>
+          <div class="demo-field demo-field-sm">
+            <label for="demo-last-cleaned">Last Cleaned</label>
+            <input id="demo-last-cleaned" type="date" value="2025-01-01" />
+          </div>
+          <div class="demo-field demo-field-btn">
+            <label>&nbsp;</label>
+            <button id="demo-run" class="btn btn-lg">Run Analysis</button>
+          </div>
+        </div>
+
+        <div id="demo-progress" class="demo-progress hidden">
+          <div class="demo-stages">
+            <span class="demo-stage" id="stage-recommend">Recommend</span>
+            <span class="demo-stage-sep">→</span>
+            <span class="demo-stage" id="stage-viz">Render map</span>
+          </div>
+          <p id="demo-status" class="demo-status-text">Starting&hellip;</p>
+        </div>
+
+        <div id="demo-result" class="demo-result hidden">
+          <iframe id="demo-map" src="" title="Soiling risk map" frameborder="0"></iframe>
+          <p class="demo-map-hint">Hover any array for risk score and cleaning window &bull; Click the blue marker for the AOI summary</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- PRODUCT OUTPUTS -->
   <section id="outputs" class="section">
     <div class="container">
@@ -277,6 +321,98 @@
       </ul>
     </div>
   </footer>
+
+  <script>
+    // Change to your deployed API URL in production
+    const API = 'http://localhost:8000';
+    const API_KEY = 'test';
+
+    const runBtn      = document.getElementById('demo-run');
+    const progressEl  = document.getElementById('demo-progress');
+    const resultEl    = document.getElementById('demo-result');
+    const statusEl    = document.getElementById('demo-status');
+    const mapFrame    = document.getElementById('demo-map');
+
+    function setStage(name) {
+      document.querySelectorAll('.demo-stage').forEach(s => s.classList.remove('active'));
+      const el = document.getElementById('stage-' + name);
+      if (el) el.classList.add('active');
+    }
+    function setAllDone() {
+      document.querySelectorAll('.demo-stage').forEach(s => {
+        s.classList.remove('active');
+        s.classList.add('done');
+      });
+    }
+
+    runBtn.addEventListener('click', async () => {
+      const aoi         = document.getElementById('demo-aoi').value.trim();
+      const lastCleaned = document.getElementById('demo-last-cleaned').value;
+      if (!aoi || !lastCleaned) return;
+
+      runBtn.disabled = true;
+      progressEl.classList.remove('hidden');
+      resultEl.classList.add('hidden');
+      statusEl.textContent = 'Submitting job…';
+      document.querySelectorAll('.demo-stage').forEach(s => {
+        s.classList.remove('active', 'done');
+      });
+
+      let jobId;
+      try {
+        const resp = await fetch(`${API}/jobs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
+          body: JSON.stringify({
+            aoi,
+            partner_id: 'smoketest',
+            weights: 'production',
+            soiling_model: 'soiling_production',
+            last_cleaned: lastCleaned,
+            skip_tile: true,
+            skip_detect: true,
+            skip_score: true,
+          }),
+        });
+        const data = await resp.json();
+        jobId = data.job_id;
+        statusEl.textContent = 'Job queued…';
+      } catch (err) {
+        statusEl.textContent = 'Error: ' + err.message;
+        runBtn.disabled = false;
+        return;
+      }
+
+      const evtSource = new EventSource(`${API}/jobs/${jobId}/events`);
+
+      evtSource.addEventListener('stage', (e) => {
+        const { stage, message } = JSON.parse(e.data);
+        setStage(stage);
+        statusEl.textContent = message || stage;
+      });
+
+      evtSource.addEventListener('done', (e) => {
+        evtSource.close();
+        const data = JSON.parse(e.data);
+        setAllDone();
+        statusEl.textContent = 'Done!';
+        mapFrame.src = `${API}${data.risk_map_url}`;
+        resultEl.classList.remove('hidden');
+        runBtn.disabled = false;
+      });
+
+      evtSource.addEventListener('error', (e) => {
+        evtSource.close();
+        try {
+          const msg = JSON.parse(e.data);
+          statusEl.textContent = 'Error: ' + (msg.error || msg);
+        } catch (_) {
+          statusEl.textContent = 'Connection error — is the API running?';
+        }
+        runBtn.disabled = false;
+      });
+    });
+  </script>
 
   <script>
     const hamburger = document.getElementById('hamburger');

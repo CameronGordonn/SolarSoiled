@@ -20,7 +20,12 @@ import typer
 from solarsoiled.aoi import Aoi, parse_aoi, write_aoi_geojson
 from solarsoiled.manifest import write_manifest
 from solarsoiled.paths import AoiPaths, REPO_ROOT
-from solarsoiled.recommend import recommend_cleaning, write_recommendation
+from solarsoiled.recommend import (
+    recommend_cleaning,
+    recommend_per_array,
+    write_array_recommendations,
+    write_recommendation,
+)
 from solarsoiled.registry import RegistryError, ResolvedWeights, resolve as resolve_weights, resolve_soiling
 
 
@@ -246,6 +251,16 @@ def recommend(
     )
     write_recommendation(paths.recommendations_json, payload, upstream_manifest=paths.root / "manifest.json")
     typer.echo(f"recommend → {paths.recommendations_json}")
+
+    array_rows = recommend_per_array(
+        paths.risk_geojson,
+        payload,
+        risk_threshold=risk_threshold,
+    )
+    write_array_recommendations(paths.array_recommendations_json, array_rows)
+    n_actionable = sum(1 for r in array_rows if r["action"] == "clean")
+    typer.echo(f"  array_recommendations → {paths.array_recommendations_json} ({n_actionable}/{len(array_rows)} arrays to clean)")
+
     typer.echo(json.dumps({"rule_fired": payload["rule_fired"], "confidence": payload["confidence"]}))
 
 
@@ -265,6 +280,11 @@ def run(
     skip_score: bool = typer.Option(False, "--skip-score"),
     skip_recommend: bool = typer.Option(False, "--skip-recommend"),
     download: bool = typer.Option(False, "--download"),
+    as_of: str | None = typer.Option(
+        None, "--as-of",
+        help="Date for weather/air-quality lookback, YYYY-MM-DD. Default: today."
+             " Use a past date if MERRA-2 data for the current date isn't yet available.",
+    ),
 ) -> None:
     """Chain tile → detect → score → recommend, fail-fast."""
     aoi_obj, paths = _resolve_aoi(aoi, partner_id)
@@ -289,13 +309,20 @@ def run(
             aoi=aoi, soiling_model=soiling_model, partner_id=paths.aoi_id,
             region_config=REPO_ROOT / "configs" / "soiling" / "california.yaml",
             features_config=REPO_ROOT / "configs" / "soiling" / "features.yaml",
-            as_of=None,
+            as_of=as_of,
         )
     elif not paths.risk_geojson.is_file():
         raise typer.BadParameter(f"--skip-score but {paths.risk_geojson} is missing")
 
     if not skip_recommend:
-        recommend(aoi=aoi, last_cleaned=last_cleaned, partner_id=paths.aoi_id)
+        recommend(
+            aoi=aoi,
+            last_cleaned=last_cleaned,
+            partner_id=paths.aoi_id,
+            risk_threshold=0.6,
+            rain_mm_threshold=5.0,
+            min_days_since_clean=30,
+        )
 
     # AOI-level rollup manifest indexes each stage's manifest.
     stage_manifests = [
@@ -461,8 +488,15 @@ def viz(
 
     out_path = out or (paths.root / "risk_map.html")
     rec_json = paths.recommendations_json if paths.recommendations_json.exists() else None
+    arr_rec_json = paths.array_recommendations_json if paths.array_recommendations_json.exists() else None
 
-    build_risk_map(paths.risk_geojson, out_path, recommendations_json=rec_json, basemap=basemap)
+    build_risk_map(
+        paths.risk_geojson,
+        out_path,
+        recommendations_json=rec_json,
+        array_recommendations_json=arr_rec_json,
+        basemap=basemap,
+    )
 
     write_manifest(
         paths.root,

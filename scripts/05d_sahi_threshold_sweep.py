@@ -38,20 +38,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-
-def _import_05c():
-    """Load 05c as a module (its filename starts with a digit so we can't `import`)."""
-    import importlib.util
-    p = REPO_ROOT / "scripts" / "05c_per_detection_rca.py"
-    spec = importlib.util.spec_from_file_location("rca_05c", str(p))
-    if spec is None or spec.loader is None:
-        raise ImportError(f"Cannot load 05c from {p}")
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
-
-
 from src.solarsoiled.manifest import write_manifest  # noqa: E402
+from src.utils.rca import run_rca_pass  # noqa: E402
 from src.utils.train_utils import resolve_weights  # noqa: E402
 
 
@@ -106,7 +94,6 @@ def main(argv=None) -> int:
     sweep_csv = out_dir / "sahi_threshold_sweep.csv"
     best_json = out_dir / "sahi_threshold_sweep_best.json"
 
-    rca = _import_05c()
     sweep_rows: list[dict] = []
     print(f"SAHI threshold sweep: {len(confs)}×{len(ious)} = {len(confs)*len(ious)} combos "
           f"on splits={splits} (this is slow — each combo runs SAHI on every tile)")
@@ -115,25 +102,21 @@ def main(argv=None) -> int:
         for iou in ious:
             with tempfile.TemporaryDirectory() as td:
                 tmp_dir = Path(td)
-                argv_rca = [
-                    "--weights", str(weights_path),
-                    "--data", str(args.data),
-                    "--splits", *splits,
-                    "--sahi",
-                    "--slice", str(slice_size),
-                    "--overlap", str(slice_overlap),
-                    "--conf", str(conf),
-                    "--iou", str(iou),
-                    "--run-name", f"{run_name}_c{conf}_i{iou}",
-                    "--out-dir", str(tmp_dir),
-                ]
-                if standard_pred:
-                    argv_rca.append("--standard-pred")
-                if args.limit:
-                    argv_rca += ["--limit", str(args.limit)]
                 print(f"  [conf={conf:.2f} iou={iou:.2f}]", flush=True)
-                rca.main(argv_rca)
-                metrics = metrics_from_csv(tmp_dir / "per_detection.csv")
+                csv_path = run_rca_pass(
+                    weights_path=weights_path,
+                    data_yaml=args.data,
+                    splits=splits,
+                    out_dir=tmp_dir,
+                    sahi=True,
+                    conf=conf,
+                    iou=iou,
+                    slice_size=slice_size,
+                    overlap=slice_overlap,
+                    limit=args.limit,
+                    standard_pred=standard_pred,
+                )
+                metrics = metrics_from_csv(csv_path)
             sweep_rows.append({"conf": conf, "iou": iou, **metrics})
             print(f"    → P={metrics['precision']:.3f} R={metrics['recall']:.3f} "
                   f"F1={metrics['f1']:.3f}")

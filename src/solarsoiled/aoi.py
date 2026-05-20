@@ -14,9 +14,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+import yaml
 
 from shapely.geometry import Polygon, mapping, shape
 
@@ -128,22 +131,71 @@ def _stable_id(polygon: Polygon) -> str:
     return hashlib.sha1(canonical).hexdigest()[:10]
 
 
+_SCENES_PATH = Path(__file__).resolve().parents[2] / "configs" / "scenes.yaml"
+_scenes_cache: dict[str, dict] | None = None
+
+
+def _load_scenes() -> dict[str, dict]:
+    global _scenes_cache
+    if _scenes_cache is None:
+        if _SCENES_PATH.exists():
+            _scenes_cache = yaml.safe_load(_SCENES_PATH.read_text()) or {}
+        else:
+            _scenes_cache = {}
+    return _scenes_cache
+
+
+def _normalize_scene_key(s: str) -> str:
+    return re.sub(r"[\s\-]+", "_", s.strip().lower())
+
+
+def _resolve_named_scene(spec: str) -> Polygon | None:
+    key = _normalize_scene_key(spec)
+    scenes = _load_scenes()
+    entry = scenes.get(key)
+    if entry is None:
+        return None
+    minx, miny, maxx, maxy = entry["bbox"]
+    _check_wgs84_range(minx, miny, maxx, maxy, context=f"scene {key!r}")
+    return Polygon(
+        [(minx, miny), (maxx, miny), (maxx, maxy), (minx, maxy), (minx, miny)]
+    )
+
+
 def parse_aoi(spec: str, *, partner_id: str | None = None) -> Aoi:
     """Parse a CLI ``--aoi`` argument into a normalized AOI.
 
-    ``spec`` is either a comma-separated bbox or a path to a GeoJSON file.
+    Accepts (in order):
+    - A named scene from ``configs/scenes.yaml`` (e.g. ``"santa_cruz"``)
+    - A path to a GeoJSON file
+    - A comma-separated bbox ``"minx,miny,maxx,maxy"`` (WGS84)
+
     ``partner_id`` overrides the auto-generated content hash so partner runs
     land in a stable directory.
     """
+    # 1. Named scene lookup
+    polygon = _resolve_named_scene(spec)
+    if polygon is not None:
+        aoi_id = partner_id or _normalize_scene_key(spec)
+        return Aoi(polygon=polygon, aoi_id=aoi_id, source="scene")
+
+    # 2. GeoJSON file
     candidate = Path(spec)
     if candidate.exists() and candidate.is_file():
         polygon = _geojson_to_polygon(candidate)
-        source = "geojson"
-    else:
-        polygon = _bbox_to_polygon(spec)
-        source = "bbox"
+        aoi_id = partner_id or _stable_id(polygon)
+        return Aoi(polygon=polygon, aoi_id=aoi_id, source="geojson")
+
+    # 3. Bbox string — if it doesn't look like a bbox, give a better error
+    if "," not in spec:
+        known = sorted(_load_scenes().keys())
+        raise AOIValidationError(
+            f"Unknown named scene {spec!r}. Known scenes: {', '.join(known)}. "
+            f"Also accepts a GeoJSON file path or 'minx,miny,maxx,maxy' bbox."
+        )
+    polygon = _bbox_to_polygon(spec)
     aoi_id = partner_id or _stable_id(polygon)
-    return Aoi(polygon=polygon, aoi_id=aoi_id, source=source)
+    return Aoi(polygon=polygon, aoi_id=aoi_id, source="bbox")
 
 
 def write_aoi_geojson(aoi: Aoi, path: Path) -> Path:

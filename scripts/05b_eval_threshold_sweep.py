@@ -25,8 +25,12 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--weights", type=str, required=True)
     parser.add_argument("--data", type=str, default="data/yolo/naip/data.yaml")
     parser.add_argument("--config", type=str, default="configs/yolo/thresholds.yaml")
-    parser.add_argument("--out-csv", type=str, default="outputs/eval/threshold_sweep_results.csv")
-    parser.add_argument("--summary-json", type=str, default="outputs/eval/threshold_sweep_best.json")
+    parser.add_argument("--run-name", type=str, default=None,
+                        help="Write outputs under outputs/eval/<run-name>/ instead of flat")
+    parser.add_argument("--out-csv", type=str, default=None,
+                        help="Override output CSV path (default: outputs/eval[/<run-name>]/threshold_sweep_results.csv)")
+    parser.add_argument("--summary-json", type=str, default=None,
+                        help="Override best-result JSON path")
     parser.add_argument("--project", type=str, default="runs/segment")
     parser.add_argument("--name", type=str, default="threshold_sweep")
     return parser.parse_args(argv)
@@ -52,8 +56,13 @@ def main(argv=None) -> int:
     if not config_yaml.exists():
         raise FileNotFoundError(f"Threshold config not found: {args.config}")
 
-    out_csv = Path(args.out_csv).expanduser().resolve()
-    summary_json = Path(args.summary_json).expanduser().resolve()
+    eval_dir = (repo_root / "outputs" / "eval" / args.run_name
+                if args.run_name
+                else repo_root / "outputs" / "eval")
+    out_csv = (Path(args.out_csv).expanduser().resolve() if args.out_csv
+               else eval_dir / "threshold_sweep_results.csv")
+    summary_json = (Path(args.summary_json).expanduser().resolve() if args.summary_json
+                    else eval_dir / "threshold_sweep_best.json")
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     summary_json.parent.mkdir(parents=True, exist_ok=True)
     project_dir = resolve_project_dir(args.project, repo_root)

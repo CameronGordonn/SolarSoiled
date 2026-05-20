@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 """Per-step Duke-ramp evaluation: NAIP test mAP50, Duke test mAP50, RCA snapshot.
 
-Called once after each `03_train_yolov8_seg.py` ramp run. Drives the standard
-05 eval against both data.yamls (NAIP test, Duke test), runs 05c against NAIP
-test for a per-detection failure-mode snapshot, and appends one row to
-`outputs/eval/ramp_curve.csv` so the ramp's regression curve is visible at a
-glance.
+Called once after each `03_train_yolov8_seg.py` ramp run. Evaluates both
+data.yamls (NAIP test, Duke test), runs the per-detection RCA on NAIP test
+for a failure-mode snapshot, and appends one row to `outputs/eval/ramp_curve.csv`
+so the ramp's regression curve is visible at a glance.
 
 The hard stop-rule from the ramp config: if `naip_regression_delta > 0.07`,
 print a HALT line so the runbook script (or the human running it) knows the
-previous step's weights are the production candidate. We also report
-NAIP-test precision separately because Josh's 2026-05-03 joint run had
-precision <0.1 — mAP50 alone wouldn't have caught that.
+previous step's weights are the production candidate. NAIP-test precision is
+also reported separately because mAP50 alone can miss over-prediction failures
+(high recall, very low precision).
 
 Usage:
   python scripts/05e_ramp_eval.py --run R1 \\
@@ -23,9 +22,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 import yaml
@@ -35,7 +32,8 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from src.solarsoiled.manifest import write_manifest
-from src.utils.train_utils import resolve_weights
+from src.utils.rca import run_rca_pass, summarize_rca
+from src.utils.train_utils import compute_f1, resolve_weights, select_device
 
 
 def parse_args(argv=None) -> argparse.Namespace:
@@ -61,49 +59,45 @@ def parse_args(argv=None) -> argparse.Namespace:
 
 
 def run_ultralytics_val(weights: Path, data_yaml: Path) -> dict:
-    """Invoke 05_evaluate_yolov8_seg.py and parse its written metrics JSON."""
-    with tempfile.TemporaryDirectory() as td:
-        out_path = Path(td) / "metrics.json"
-        cmd = [
-            sys.executable, str(REPO_ROOT / "scripts" / "05_evaluate_yolov8_seg.py"),
-            "--weights", str(weights),
-            "--data", str(data_yaml),
-            "--split", "test",
-            "--metrics-json", str(out_path),
-        ]
-        subprocess.run(cmd, check=True)
-        if out_path.exists():
-            return json.loads(out_path.read_text())
-    return {}
+    """Run model.val() on the test split and return a metrics dict."""
+    from ultralytics import YOLO
+    device = select_device()
+    model = YOLO(str(weights), task="segment")
+    metrics = model.val(data=str(data_yaml), split="test", device=device, verbose=False)
+    sp, sr = float(metrics.seg.mp), float(metrics.seg.mr)
+    return {
+        "seg": {
+            "map50": float(metrics.seg.map50),
+            "map50_95": float(metrics.seg.map),
+            "precision": sp,
+            "recall": sr,
+            "f1": compute_f1(sp, sr),
+        },
+        "box": {
+            "map50": float(metrics.box.map50),
+            "map50_95": float(metrics.box.map),
+            "precision": float(metrics.box.mp),
+            "recall": float(metrics.box.mr),
+        },
+    }
 
 
 def run_rca(weights: Path, data_yaml: Path, run_name: str, limit: int | None) -> dict:
-    """Invoke 05c on NAIP test and return failure-mode summary."""
+    """Run SAHI RCA on NAIP test split and return failure-mode summary."""
     rca_dir = REPO_ROOT / "outputs" / "eval" / run_name / "rca_naip_test"
     rca_dir.mkdir(parents=True, exist_ok=True)
-    argv = [
-        "--weights", str(weights),
-        "--data", str(data_yaml),
-        "--splits", "test",
-        "--sahi", "--conf", "0.05", "--iou", "0.5",
-        "--run-name", run_name,
-        "--out-dir", str(rca_dir),
-    ]
-    if limit:
-        argv += ["--limit", str(limit)]
-
-    import importlib.util
-    spec = importlib.util.spec_from_file_location(
-        "rca_05c", str(REPO_ROOT / "scripts" / "05c_per_detection_rca.py"))
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    mod.main(argv)
-
-    # Aggregate
-    csv_path = rca_dir / "per_detection.csv"
+    csv_path = run_rca_pass(
+        weights_path=weights,
+        data_yaml=data_yaml,
+        splits=["test"],
+        out_dir=rca_dir,
+        sahi=True,
+        conf=0.05,
+        iou=0.5,
+        limit=limit,
+    )
     out_json = rca_dir / "failure_modes.json"
-    mod.summarize(csv_path, out_json)
-    return json.loads(out_json.read_text())
+    return summarize_rca(csv_path, out_json)
 
 
 def append_curve_row(curve_csv: Path, row: dict) -> None:

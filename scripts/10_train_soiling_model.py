@@ -21,6 +21,8 @@ from src.soiling.labels import (
     kimber_synthetic_labels,
     load_nrel_panel,
     load_nrel_soiling_map,
+    somosclean_panel_labels,
+    somosclean_synthetic_labels,
 )
 from src.soiling.location_features import load_static_lookup, location_feature_vector
 from src.soiling.risk_model import (
@@ -104,7 +106,89 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--dry-run", action="store_true", help="Build labels + features, skip training")
     p.add_argument("--holdout-year", type=int, default=None,
                    help="Panel-mode only: hold out this label year for temporal validation")
+    p.add_argument("--feedback-dir", default=None,
+                   help="Root of partner AOI outputs (default: outputs/aoi/). "
+                        "Globs */feedback.json and joins lat/lon from */risk.geojson.")
     return p.parse_args()
+
+
+def load_feedback_labels(feedback_dir: Path, iwsr_risk_threshold: float) -> pd.DataFrame:
+    """Load partner clean-event records and convert to training rows.
+
+    For each feedback.json found under feedback_dir/*/feedback.json:
+      - Joins array centroid lat/lon from the sibling risk.geojson
+      - Derives pseudo_iwsr = 1 - actual_recovery_pct/100
+      - Applies iwsr_risk_threshold to produce a binary label
+      - Sets as_of = cleaned_at so weather features match the soiling event
+
+    Returns an empty DataFrame (not None) when no feedback files are found.
+    """
+    import glob
+    import json as _json
+
+    import geopandas as gpd
+
+    pattern = str(feedback_dir / "*" / "feedback.json")
+    files = sorted(glob.glob(pattern))
+    if not files:
+        return pd.DataFrame()
+
+    all_rows: list[dict] = []
+    for fpath in files:
+        partner_id = Path(fpath).parent.name
+        risk_path = Path(fpath).parent / "risk.geojson"
+        if not risk_path.exists():
+            logger.warning("feedback/%s: risk.geojson missing — skipping (run score first)", partner_id)
+            continue
+
+        with open(fpath) as fh:
+            records = _json.load(fh)
+
+        # Build array_id → (lat, lon) WGS84 centroid lookup via geopandas.
+        gdf = gpd.read_file(risk_path)
+        if gdf.crs and not gdf.crs.equals("EPSG:4326"):
+            gdf = gdf.to_crs("EPSG:4326")
+        centroid_map: dict[int, tuple[float, float]] = {}
+        for _, row in gdf.iterrows():
+            aid = row.get("array_id")
+            if aid is None:
+                continue
+            c = row.geometry.centroid
+            centroid_map[int(aid)] = (float(c.y), float(c.x))
+
+        for rec in records:
+            aid = int(rec.get("array_id", -1))
+            if aid not in centroid_map:
+                logger.warning(
+                    "feedback/%s array_id=%d not found in risk.geojson — skipping",
+                    partner_id, aid,
+                )
+                continue
+            lat, lon = centroid_map[aid]
+            recovery_pct = float(rec["actual_recovery_pct"])
+            pseudo_iwsr = max(0.0, 1.0 - recovery_pct / 100.0)
+            cleaned_at = rec["cleaned_at"]  # YYYY-MM-DD
+            year = int(cleaned_at[:4])
+            all_rows.append({
+                "station_id": f"{partner_id}_array_{aid}",
+                "latitude": lat,
+                "longitude": lon,
+                "as_of": cleaned_at,
+                "iwsr": pseudo_iwsr,
+                "label": int(pseudo_iwsr < iwsr_risk_threshold),
+                "year": year,
+                "is_feedback": True,
+            })
+
+    if not all_rows:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(all_rows)
+    logger.info(
+        "Loaded %d feedback rows from %d partner(s) — label dist: %s",
+        len(df), len(files), df["label"].value_counts().to_dict(),
+    )
+    return df
 
 
 def _load_labels(region_cfg: dict, repo_root: Path) -> pd.DataFrame:
@@ -144,6 +228,89 @@ def _load_labels(region_cfg: dict, repo_root: Path) -> pd.DataFrame:
             iwsr_risk_threshold=float(region_cfg["iwsr_risk_threshold"]),
             cache_dir=repo_root / region_cfg.get("cache_dir", ".cache/soiling"),
         )
+    if source == "somosclean":
+        feat_cfg_path = repo_root / "configs/soiling/features.yaml"
+        feat_cfg = yaml.safe_load(feat_cfg_path.read_text())
+        sc_params = feat_cfg.get("somosclean", {})
+        sc_kwargs = dict(
+            iwsr_risk_threshold=float(region_cfg["iwsr_risk_threshold"]),
+            cache_dir=repo_root / region_cfg.get("cache_dir", ".cache/soiling"),
+            sl_sat=float(sc_params.get("sl_sat", 0.10)),
+            k=float(sc_params.get("k", 30.0)),
+            heavy_rain_mm=float(sc_params.get("heavy_rain_mm", 10.0)),
+            rain_min_mm=float(sc_params.get("rain_min_mm", 1.0)),
+            pm10_dust_threshold=float(sc_params.get("pm10_dust_threshold", 50.0)),
+            pm10_dust_scale=float(sc_params.get("pm10_dust_scale", 0.02)),
+        )
+        nrel_annual = repo_root / region_cfg.get(
+            "nrel_panel_csv_path", "data/external/nrel_soiling_map_annual.csv"
+        )
+        if nrel_annual.exists():
+            logger.info("Using somosclean_panel_labels with NREL coordinates from %s", nrel_annual)
+            bbox_cfg = region_cfg.get("bbox")
+            return somosclean_panel_labels(
+                nrel_csv_path=nrel_annual,
+                bbox=tuple(bbox_cfg) if bbox_cfg else None,
+                **sc_kwargs,
+            )
+        logger.info("NREL annual CSV not found — falling back to %d seed stations", len(DEFAULT_CA_STATIONS))
+        return somosclean_synthetic_labels(
+            DEFAULT_CA_STATIONS,
+            as_of=as_of,
+            lookback_days=int(region_cfg.get("weather_history_days", 365)),
+            **sc_kwargs,
+        )
+    if source == "nrel_merged":
+        # Panel rows (year-matched weather) + summary-only rows (today-centered weather).
+        # Summary rows add geographic diversity (9 extra states) at the cost of imperfect
+        # weather alignment; they are down-weighted in _compute_sample_weights via is_summary.
+        bbox_cfg = region_cfg.get("bbox")
+        bbox = tuple(bbox_cfg) if bbox_cfg else None
+        iwsr_thr = float(region_cfg["iwsr_risk_threshold"])
+        drop_censored = region_cfg.get("drop_censored", True)
+
+        panel_path = repo_root / region_cfg.get("nrel_panel_csv_path", "data/external/nrel_soiling_map_annual.csv")
+        panel = load_nrel_panel(panel_path, bbox=bbox)
+        if drop_censored and "iwsr_censored" in panel.columns:
+            before = len(panel)
+            panel = panel[~panel["iwsr_censored"].astype(bool)].reset_index(drop=True)
+            logger.info("Panel: dropped %d censored rows; %d remain", before - len(panel), len(panel))
+        panel["label"] = (panel["iwsr"] < iwsr_thr).astype(int)
+        panel["as_of"] = panel["year"].apply(lambda y: date(int(y), 12, 31).isoformat())
+        panel["is_summary"] = False
+
+        summary_path = repo_root / region_cfg.get("nrel_csv_path", "data/external/nrel_soiling_map.csv")
+        summary_all = load_nrel_soiling_map(summary_path, bbox=bbox)
+        panel_stations = set(panel["station_id"].unique())
+        summary = summary_all[~summary_all["station_id"].isin(panel_stations)].reset_index(drop=True)
+        # Summary-only stations are all censored (IWSR ">0.99" → coerced 0.995, label=0).
+        # We keep them despite drop_censored: the label direction is known (not at risk),
+        # and they add 9 states of geographic coverage absent from the panel set.
+        # They are down-weighted via summary_weight_factor in _compute_sample_weights.
+        n_censored_summary = int(summary["iwsr_censored"].astype(bool).sum()) if "iwsr_censored" in summary.columns else 0
+        if n_censored_summary:
+            logger.info(
+                "Summary-only: keeping %d censored rows (all label=0; skipping drop_censored for geographic coverage)",
+                n_censored_summary,
+            )
+        summary["label"] = (summary["iwsr"] < iwsr_thr).astype(int)
+        summary["as_of"] = as_of.isoformat()
+        summary["year"] = as_of.year
+        summary["is_summary"] = True
+
+        keep = ["station_id", "latitude", "longitude", "as_of", "iwsr", "label", "year", "is_summary"]
+        for c in ("iwsr_lower", "iwsr_upper", "tilt_deg", "months_in_data_set", "mounting", "measurement_type"):
+            if c in panel.columns or c in summary.columns:
+                keep.append(c)
+        merged = pd.concat([panel, summary], ignore_index=True)
+        merged = merged[[c for c in keep if c in merged.columns]]
+        logger.info(
+            "nrel_merged: %d panel rows (%d stations) + %d summary-only rows (%d stations) = %d total",
+            len(panel), panel["station_id"].nunique(),
+            len(summary), summary["station_id"].nunique(),
+            len(merged),
+        )
+        return merged
     raise ValueError(f"Unknown label_source: {source}")
 
 
@@ -160,6 +327,7 @@ def _station_features(
     cache_dir = repo_root / region_cfg.get("cache_dir", ".cache/soiling")
     windows = tuple(feat_cfg["rolling_windows_days"])
     kimber_cfg = feat_cfg.get("kimber")
+    somosclean_cfg = feat_cfg.get("somosclean")
     static_path = region_cfg.get("static_features_csv")
     static_lookup = load_static_lookup(repo_root / static_path) if static_path else None
 
@@ -190,6 +358,11 @@ def _station_features(
             "longitude": float(s["longitude"]),
             "label": int(s["label"]),
             "iwsr": float(s["iwsr"]),
+            "is_feedback": bool(s.get("is_feedback", False)),
+            "is_summary": bool(s.get("is_summary", False)),
+            # Month of observation — captures seasonal soiling cycle.
+            # lat/lon flow through as explicit features (not in meta_cols).
+            "month_of_year": as_of_row.month,
         }
         if panel_mode:
             row["year"] = int(s["year"])
@@ -201,7 +374,7 @@ def _station_features(
         for c in cov_categorical:
             row[c] = s.get(c)
         row.update(loc)
-        row.update(build_feature_row(daily, as_of_row, windows=windows, kimber_cfg=kimber_cfg))
+        row.update(build_feature_row(daily, as_of_row, windows=windows, kimber_cfg=kimber_cfg, somosclean_cfg=somosclean_cfg))
         rows.append(row)
         if panel_mode and i % 50 == 0:
             logger.info("Built features for %d / %d panel rows", i, n_total)
@@ -237,8 +410,9 @@ def _log_aq_coverage(features: pd.DataFrame) -> None:
 def _drop_sparse_features(features: pd.DataFrame, min_non_null_fraction: float | None) -> tuple[pd.DataFrame, dict[str, float]]:
     if min_non_null_fraction is None:
         return features, {}
-    meta_cols = {"station_id", "latitude", "longitude", "label", "iwsr",
-                 "iwsr_lower", "iwsr_upper", "as_of", "year"}
+    meta_cols = {"station_id", "label", "iwsr",
+                 "iwsr_lower", "iwsr_upper", "as_of", "year", "is_feedback", "is_summary",
+                 "months_in_data_set"}  # lat/lon included as features; months_in_data_set is NREL-only metadata
     feature_cols = [c for c in features.columns if c not in meta_cols]
     coverage = features[feature_cols].notna().mean().sort_values()
     sparse = coverage[coverage < float(min_non_null_fraction)]
@@ -264,6 +438,13 @@ def main() -> None:
         raise RuntimeError("No labels produced — check network access and label source")
     logger.info("Label distribution: %s", labels["label"].value_counts().to_dict())
 
+    feedback_dir = Path(args.feedback_dir) if args.feedback_dir else repo_root / "outputs" / "aoi"
+    feedback_labels = load_feedback_labels(feedback_dir, float(region_cfg["iwsr_risk_threshold"]))
+    if not feedback_labels.empty:
+        labels = pd.concat([labels, feedback_labels], ignore_index=True)
+        logger.info("Combined: %d NREL + %d feedback rows = %d total",
+                    len(labels) - len(feedback_labels), len(feedback_labels), len(labels))
+
     features = _station_features(labels, feat_cfg, region_cfg, repo_root)
     _log_aq_coverage(features)
     features, dropped_sparse = _drop_sparse_features(
@@ -279,8 +460,9 @@ def main() -> None:
         logger.info("--dry-run: skipping training")
         return
 
-    meta_cols = {"station_id", "latitude", "longitude", "label", "iwsr",
-                 "iwsr_lower", "iwsr_upper", "as_of", "year"}
+    meta_cols = {"station_id", "label", "iwsr",
+                 "iwsr_lower", "iwsr_upper", "as_of", "year", "is_feedback", "is_summary",
+                 "months_in_data_set"}  # lat/lon included as features; months_in_data_set is NREL-only metadata
     feature_cols = [c for c in features.columns if c not in meta_cols]
     X = features[feature_cols].apply(pd.to_numeric, errors="coerce")
     y = features["label"].values.astype(int)
@@ -390,19 +572,46 @@ def main() -> None:
 
 def _compute_sample_weights(features: pd.DataFrame, cfg: dict) -> np.ndarray | None:
     mode = cfg.get("mode", "uniform")
+    feedback_multiplier = float(cfg.get("feedback_weight_multiplier", 3.0))
+    summary_factor = float(cfg.get("summary_weight_factor", 0.5))
+    has_feedback = "is_feedback" in features.columns and features["is_feedback"].any()
+    has_summary = "is_summary" in features.columns and features["is_summary"].any()
+
     if mode == "uniform":
-        return None
-    if mode != "iwsr_ci_width":
+        if not has_feedback and not has_summary:
+            return None
+        w = np.ones(len(features), dtype=float)
+    elif mode == "iwsr_ci_width":
+        if "iwsr_lower" not in features.columns or "iwsr_upper" not in features.columns:
+            logger.warning("sample_weights=iwsr_ci_width requested but CI columns missing; using uniform")
+            w = np.ones(len(features), dtype=float)
+        else:
+            width = (features["iwsr_upper"] - features["iwsr_lower"]).astype(float)
+            width = width.where(width > 0).fillna(width[width > 0].median() if (width > 0).any() else 0.01)
+            w = 1.0 / np.maximum(width.values, 1e-3)
+            lo_pct, hi_pct = cfg.get("clip_percentiles", [5, 95])
+            lo, hi = np.percentile(w, [lo_pct, hi_pct])
+            w = np.clip(w, lo, hi)
+    else:
         raise ValueError(f"Unknown sample_weights.mode: {mode}")
-    if "iwsr_lower" not in features.columns or "iwsr_upper" not in features.columns:
-        logger.warning("sample_weights=iwsr_ci_width requested but CI columns missing; using uniform")
-        return None
-    width = (features["iwsr_upper"] - features["iwsr_lower"]).astype(float)
-    width = width.where(width > 0).fillna(width[width > 0].median() if (width > 0).any() else 0.01)
-    w = 1.0 / np.maximum(width.values, 1e-3)
-    lo_pct, hi_pct = cfg.get("clip_percentiles", [5, 95])
-    lo, hi = np.percentile(w, [lo_pct, hi_pct])
-    return np.clip(w, lo, hi)
+
+    if has_summary:
+        sum_mask = features["is_summary"].fillna(False).values
+        w[sum_mask] *= summary_factor
+        logger.info(
+            "Applied summary_weight_factor=%.2f to %d summary-only rows",
+            summary_factor, int(sum_mask.sum()),
+        )
+
+    if has_feedback:
+        fb_mask = features["is_feedback"].fillna(False).values
+        w[fb_mask] *= feedback_multiplier
+        logger.info(
+            "Applied feedback_weight_multiplier=%.1f to %d feedback rows",
+            feedback_multiplier, int(fb_mask.sum()),
+        )
+
+    return w
 
 
 if __name__ == "__main__":

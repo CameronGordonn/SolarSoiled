@@ -1,0 +1,41 @@
+# SolarSoiled — docker-compose
+#
+# Two services:
+#   pipeline  — one-shot CLI run (override CMD to pass args)
+#   api       — persistent FastAPI server on port 8000
+#
+# Copy .env.example to .env and fill in your keys before running.
+#
+# Usage:
+#   docker compose run --rm pipeline run \
+#     --aoi "-122.05,36.90,-121.85,37.05" \
+#     --weights production \
+#     --soiling-model soiling_production \
+#     --last-cleaned 2025-12-01 \
+#     --partner-id smoketest
+#
+#   docker compose up api
+
+x-common: &common
+  image: solarsoiled:latest
+  build: .
+  env_file: .env
+  volumes:
+    - ./models:/app/models
+    - ./runs:/app/runs
+    - ./outputs:/app/outputs
+    - ./.cache:/app/.cache
+    - ./data/external:/app/data/external
+
+services:
+  pipeline:
+    <<: *common
+    entrypoint: ["solarsoiled"]
+    command: ["--help"]
+
+  api:
+    <<: *common
+    entrypoint: ["solarsoiled-api"]
+    ports:
+      - "8000:8000"
+    restart: unless-stopped

@@ -298,6 +298,46 @@ a   { color: inherit; text-decoration: none; }
   transition: transform .2s, opacity .2s;
 }
 
+/* ── Live Demo ────────────────────────────────────────────── */
+.demo-panel { margin-top: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
+
+.demo-form-row {
+  display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;
+}
+.demo-field { display: flex; flex-direction: column; gap: .4rem; flex: 1; min-width: 200px; }
+.demo-field label { font-size: .85rem; font-weight: 500; color: var(--gray); }
+.demo-field input[type="text"],
+.demo-field input[type="date"] {
+  padding: .65rem 1rem; border: 1px solid var(--lt-gray); border-radius: var(--radius);
+  font-family: 'Inter', sans-serif; font-size: .95rem; color: var(--text);
+  background: #fff; transition: border-color .2s;
+}
+.demo-field input:focus { outline: none; border-color: var(--teal); }
+.field-hint { font-weight: 400; color: #888; font-size: .78rem; margin-left: .3rem; }
+.demo-field-sm { flex: 0 0 160px; min-width: 0; }
+.demo-field-btn { flex: 0 0 auto; }
+.demo-field-btn .btn { white-space: nowrap; }
+
+.demo-progress { display: flex; flex-direction: column; gap: .6rem; }
+.demo-stages { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.demo-stage {
+  padding: .3rem .8rem; border-radius: 99px; font-size: .85rem; font-weight: 500;
+  background: var(--lt-gray); color: var(--gray); transition: background .2s, color .2s;
+}
+.demo-stage.active { background: var(--gold); color: var(--navy); }
+.demo-stage.done   { background: #22c55e; color: #fff; }
+.demo-stage-sep    { color: var(--lt-gray); font-size: 1.1rem; }
+.demo-status-text  { font-size: .9rem; color: var(--gray); }
+
+.demo-result { display: flex; flex-direction: column; gap: .5rem; }
+#demo-map {
+  width: 100%; height: 520px; border-radius: var(--radius);
+  border: 1px solid var(--lt-gray); background: #f1f5f9;
+}
+.demo-map-hint { font-size: .8rem; color: #888; text-align: center; }
+
+.hidden { display: none !important; }
+
 @media (max-width: 900px) {
   .hero-grid, .solution-grid { grid-template-columns: 1fr; }
   .hero h1 { font-size: 2.4rem; }

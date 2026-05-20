@@ -76,6 +76,7 @@ models:
 aliases:
   production: r2-cameron-20260509
   latest: r2-cameron-20260509
+  smoketest: r2-cameron-20260509
 
 # ── Stage 2 soiling models ───────────────────────────────────────────────────
 # Same resolution rules as `models`: name, alias, or filesystem path to model.ubj.
@@ -88,12 +89,26 @@ soiling_models:
     holdout_auc: 0.655
     holdout_year: 2022
     beta: true
-    notes: NREL panel labels, 10 km spatial CV, isotonic calibrated, leakage-free medians. Production-safe beta checkpoint.
+    notes: NREL panel labels, 10 km spatial CV, isotonic calibrated, leakage-free medians. Superseded by run_optionb.
     known_limitations:
       - Below 0.70 AUC GA bar
       - AQ features sparse pre-2022; PM columns dropped at training
       - N≈640 training rows; limited by NREL station count
 
+  run_optionb:
+    path: runs/soiling/run_optionb/model.ubj
+    stage: stage2
+    cv_auc: 0.728
+    holdout_auc: 0.679
+    holdout_year: 2022
+    beta: true
+    notes: nrel_merged national labels (1000 rows, 15 states); lat/lon + month_of_year features; 10 km spatial CV; isotonic calibrated. Spatial-CV gate cleared (≥0.70). Holdout gate pending MERRA-2 AQ data.
+    known_limitations:
+      - Holdout AUC 0.679 — below 0.70 GA bar (2.1 pts short)
+      - AQ features only populated for 2022 + 2026; MERRA-2 prefetch in progress for 2008-2021
+      - Coordinate memorization risk partially mitigated by 10 km spatial CV
+
 soiling_aliases:
-  soiling_production: run_k_patched_holdout2022
-  soiling_latest: run_k_patched_holdout2022
+  soiling_production: run_optionb
+  soiling_latest: run_optionb
+  soiling_smoketest: run_optionb

@@ -12,7 +12,7 @@ from typing import Iterable, Mapping, Sequence
 import numpy as np
 import pandas as pd
 
-from src.soiling.labels import kimber_soiling_ratio
+from src.soiling.labels import kimber_soiling_ratio, somosclean_eqd_trajectory
 
 
 DEFAULT_WINDOWS: tuple[int, ...] = (7, 30, 90)
@@ -57,6 +57,7 @@ def build_feature_row(
     as_of: date,
     windows: Sequence[int] = DEFAULT_WINDOWS,
     kimber_cfg: Mapping | None = None,
+    somosclean_cfg: Mapping | None = None,
 ) -> dict:
     """Aggregate one weather DataFrame into a single-row feature dict.
 
@@ -102,6 +103,21 @@ def build_feature_row(
             for w in windows:
                 row[f"kimber_iwsr_{w}d_mean"] = _window_stats(ratio, w, as_of_ts, "mean")
 
+    if somosclean_cfg and somosclean_cfg.get("use_somosclean_feature"):
+        if "precipitation_sum" in daily.columns:
+            _, sl_series = somosclean_eqd_trajectory(
+                daily,
+                sl_sat=float(somosclean_cfg.get("sl_sat", 0.25)),
+                k=float(somosclean_cfg.get("k", 30.0)),
+                heavy_rain_mm=float(somosclean_cfg.get("heavy_rain_mm", 10.0)),
+                rain_min_mm=float(somosclean_cfg.get("rain_min_mm", 1.0)),
+                pm10_dust_threshold=float(somosclean_cfg.get("pm10_dust_threshold", 50.0)),
+                pm10_dust_scale=float(somosclean_cfg.get("pm10_dust_scale", 0.02)),
+            )
+            row["somosclean_sl_proxy"] = float(sl_series.iloc[-1])
+            for w in (7, 30):
+                row[f"somosclean_sl_{w}d_mean"] = _window_stats(sl_series, w, as_of_ts, "mean")
+
     return row
 
 
@@ -109,6 +125,7 @@ def build_feature_matrix(
     samples: Iterable[dict],
     windows: Sequence[int] = DEFAULT_WINDOWS,
     kimber_cfg: Mapping | None = None,
+    somosclean_cfg: Mapping | None = None,
 ) -> pd.DataFrame:
     """Given an iterable of {"id", "daily": DataFrame, "as_of": date, **static},
     return a joined feature matrix keyed by `id`.
@@ -117,6 +134,6 @@ def build_feature_matrix(
     for s in samples:
         base = {"id": s["id"]}
         base.update({k: v for k, v in s.items() if k not in {"id", "daily", "as_of"}})
-        base.update(build_feature_row(s["daily"], s["as_of"], windows=windows, kimber_cfg=kimber_cfg))
+        base.update(build_feature_row(s["daily"], s["as_of"], windows=windows, kimber_cfg=kimber_cfg, somosclean_cfg=somosclean_cfg))
         rows.append(base)
     return pd.DataFrame(rows)

@@ -9,6 +9,7 @@ in `docs/PRODUCT_VISION.md`.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 
@@ -21,7 +22,11 @@ class AoiPaths:
 
     def __init__(self, aoi_id: str, root: Path | None = None) -> None:
         self.aoi_id = aoi_id
-        self.root = (root or AOI_ROOT) / aoi_id
+        base = (root or AOI_ROOT).resolve()
+        resolved = (base / aoi_id).resolve()
+        if not str(resolved).startswith(str(base) + os.sep) and resolved != base:
+            raise ValueError(f"aoi_id escapes AOI root: {aoi_id!r}")
+        self.root = resolved
 
     # Stage outputs
     @property
@@ -71,6 +76,14 @@ class AoiPaths:
     @property
     def recommendations_json(self) -> Path:
         return self.root / "recommendations.json"
+
+    @property
+    def array_recommendations_json(self) -> Path:
+        return self.root / "array_recommendations.json"
+
+    @property
+    def feedback_json(self) -> Path:
+        return self.root / "feedback.json"
 
     # Manifests (each subdir already gets one via write_manifest;
     # this is the AOI-level rollup written by `run`)

@@ -2,19 +2,7 @@
 
 End-to-end geospatial ML system for detecting rooftop solar arrays in public aerial imagery and scoring per-array soiling risk. **Two-stage architecture**: YOLOv11 polygon segmentation on NAIP imagery (Stage 1) → XGBoost risk model trained on weather reanalysis, air quality, land use, and structural features (Stage 2). Designed county-agnostic; runs on any NAIP-covered AOI.
 
----
-
-## Project Background
-
-Built as volunteer ML engineering work in collaboration with the [Better Behavior Foundation](https://www.betterbehaviorfoundation.com/about), a non-profit that develops evidence-based policy recommendations for pro-environmental decision-making. Their team includes climate scientists and economists studying renewable energy adoption barriers — one of which is degraded panel output from soiling that goes undetected and unaddressed because inspections are expensive and infrequent.
-
-This project addresses that gap: detect solar arrays from free public imagery, score soiling risk from open environmental data, and deliver actionable cleaning recommendations — without a site visit.
-
----
-
-## Why It Matters
-
-Solar panel soiling (dust, pollen, aerosols) reduces energy output by 1–10% in temperate climates and up to 25–30% in arid regions. Optimizing cleaning schedules across a county-scale install base requires knowing *which* arrays are highest-risk and *when* — from public data, without site visits. This system automates that from raw GeoTIFF to actionable cleaning recommendations.
+**Why it matters**: Solar panel soiling (dust, pollen, aerosols) reduces energy output by 1–10% in temperate climates and up to 25–30% in arid regions. Optimizing cleaning schedules across a county-scale install base requires knowing *which* arrays are highest-risk and *when* — from public data, without site visits. This system automates that from raw GeoTIFF to actionable cleaning recommendations.
 
 **Current metrics** — honest, methodology-explained in [Results](#results):
 - Stage 1: **SAHI F1 = 0.396** (conf=0.40, iou=0.50, NAIP Santa Cruz val). Active retrain in progress; beta gate ≥ 0.55.
@@ -108,7 +96,7 @@ All external data fetches are disk-cached. Weather and air quality data streams 
 | Stage 2 | **Temporal holdout AUC** | Held-out 2022 data; tests for temporal distribution shift | **0.66** |
 | Stage 2 | (Random-CV AUC — shown for reference) | Illustrates the leakage magnitude of naive splits; not used in any production decision | ~0.74 |
 
-**Quality gates**: Stage 1 beta ≥ 0.55 SAHI F1, GA ≥ 0.65. Stage 2 GA: both AUC ≥ 0.70.
+**Gates**: Stage 1 beta ≥ 0.55 SAHI F1, GA ≥ 0.65. Stage 2 GA: both AUC ≥ 0.70.
 
 ---
 
@@ -140,10 +128,10 @@ All external data fetches are disk-cached. Weather and air quality data streams 
 
 ---
 
-## Active Research
+## What's In Progress
 
 - **Train-set relabeling + R0 retrain** — iterative Roboflow relabeling with per-detection RCA driving batches; val/test already relabeled; targeting SAHI F1 ≥ 0.55 beta gate
-- **Duke curriculum ramp (R1+)** — joint NAIP + Duke training after R0 lands; curriculum in `configs/yolo/experiments_joint_v2_ramp.yaml` with hard regression stop-rule to prevent NAIP domain regression
+- **Duke curriculum ramp (R1+)** — joint NAIP + Duke training after R0 lands; curriculum in `configs/yolo/experiments_joint_v2_ramp.yaml` with hard regression stop-rule
 - **Stage 2 AUC improvement** — feature ablation and label-source comparison toward the 0.70 spatial-CV gate
 - **Beta API surface** — `/detect`, `/risk`, `/recommend` endpoints with quality metadata, auth, and per-scan metering
 
@@ -215,6 +203,7 @@ Base YOLO weights (`yolo11s-seg.pt`, `yolo11m-seg.pt`) are gitignored — downlo
 | [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) | Strategy, beta/GA contract, customer-readiness arc |
 | [docs/Q2_PLAN.md](docs/Q2_PLAN.md) | Current roadmap and workstream status |
 | [docs/HYPERPARAM_PLAYBOOK.md](docs/HYPERPARAM_PLAYBOOK.md) | Training hyperparameter rationale |
+| [docs/RTX3060_SETUP_GUIDE.md](docs/RTX3060_SETUP_GUIDE.md) | GPU environment setup |
 
 ---
 

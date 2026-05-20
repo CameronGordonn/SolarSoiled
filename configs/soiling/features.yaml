@@ -1,61 +1,49 @@
-# Feature engineering knobs for the soiling risk model.
-rolling_windows_days: [7, 30, 90]
-
-# Open-Meteo daily variables to pull (must match Open-Meteo API names).
+rolling_windows_days:
+- 7
+- 30
+- 90
 weather_variables:
-  - precipitation_sum
-  - wind_speed_10m_max
-  - relative_humidity_2m_mean
-  - temperature_2m_max
-  - temperature_2m_min
-  - shortwave_radiation_sum
-
-# CAMS air-quality hourly variables (daily-meaned in weather_client).
+- precipitation_sum
+- wind_speed_10m_max
+- relative_humidity_2m_mean
+- temperature_2m_max
+- temperature_2m_min
+- shortwave_radiation_sum
 air_quality_variables:
-  - pm2_5
-  - pm10
-
-# Geometric features already on array_features.geo.parquet to carry through.
+- pm2_5
+- pm10
 geometric_features:
-  - area_m2
-  - orientation_deg
-  - compactness
-  - neighbor_count_100m
-  - distance_to_nearest_array_m
-
-# Static location features (populated by scripts/13_build_static_features.py).
-# `nlcd_class` is the WorldCover class integer (kept for backward compat with
-# the original NLCD-named column); the one-hot `worldcover_*` columns are the
-# preferred categorical encoding.
+- area_m2
+- orientation_deg
+- compactness
+- neighbor_count_100m
+- distance_to_nearest_array_m
 static_features:
-  - elevation_m
-  - nlcd_class
-  - distance_to_highway_m
-  - distance_to_agriculture_m
-  - worldcover_cropland
-  - worldcover_built_up
-  - worldcover_bare
-  - worldcover_tree
-  - worldcover_grass
-
-# Station covariates carried from the NREL CSV. Numeric columns pass through;
-# categorical are one-hot encoded by the train script.
+- elevation_m
+- nlcd_class
+- distance_to_highway_m
+- distance_to_agriculture_m
+- worldcover_cropland
+- worldcover_built_up
+- worldcover_bare
+- worldcover_tree
+- worldcover_grass
 nrel_covariates:
   numeric:
-    - tilt_deg
-    - months_in_data_set
+  - tilt_deg
+  - months_in_data_set
   categorical: []
-
-# Drop features that are mostly null in the training matrix. This protects the
-# model from partially-available upstream feeds such as sparse AQ history.
 feature_quality:
-  min_non_null_fraction: 0.20
-
-# Kimber physics-proxy tunables.
-# `use_kimber_feature` toggles the physics-prior feature on/off during feature
-# building. Independent of `label_source` in california.yaml: you can train with
-# NREL labels while still using Kimber as an input feature (recommended).
+  min_non_null_fraction: 0.2
 kimber:
   use_kimber_feature: true
-  deposition_per_pm25: 0.0006     # fractional loss per (µg/m³ · day)
-  rain_clean_mm: 1.0              # precipitation threshold for full panel reset
+  deposition_per_pm25: 0.0006
+  rain_clean_mm: 1.0
+somosclean:
+  use_somosclean_feature: true
+  sl_sat: 0.1
+  k: 30.0
+  heavy_rain_mm: 10.0
+  rain_min_mm: 1.0
+  pm10_dust_threshold: 50.0
+  pm10_dust_scale: 0.02

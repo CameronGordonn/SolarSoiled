@@ -5,10 +5,10 @@ region: national
 bbox: null                            # null → no geographic filter
 target_crs: EPSG:32610                # same as detection pipeline
 
-label_source: nrel_panel              # kimber_proxy | nrel_soiling_map | nrel_panel
+label_source: nrel_merged             # somosclean | kimber_proxy | nrel_soiling_map | nrel_panel | nrel_merged
 nrel_csv_path: data/external/nrel_soiling_map.csv
 nrel_panel_csv_path: data/external/nrel_soiling_map_annual.csv
-iwsr_risk_threshold: 0.97             # below this → label=1 (at-risk). 0.97 is the conventional NREL clean/dirty cutoff; for kimber_proxy on 180d CA weather 0.93 was used to balance the synthetic split.
+iwsr_risk_threshold: 0.97             # below this → label=1 (at-risk). 0.97 = calibrated for nrel_panel measured IWSR; 0.944 for somosclean; 0.93 for kimber_proxy.
 drop_censored: true                   # drop NREL rows with iwsr=">0.99" (109/255 are censored). False keeps them at 0.995.
 
 weather_history_days: 180             # rolling feature lookback
