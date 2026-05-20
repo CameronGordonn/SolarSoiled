@@ -102,7 +102,7 @@ def _get_with_retry(sess, url: str, params: dict, timeout: int):
     return resp  # unreachable
 
 
-def _merra2_version(year: int) -> str:
+def _merra2_version(year: int, month: int = 1) -> str:  # noqa: ARG001
     """MERRA-2 stream label embedded in filenames."""
     if year >= 2011:
         return "400"
@@ -183,7 +183,7 @@ def _fetch_merra2_day(
     """Fetch daily-mean PM2.5 and PM10 for one day from MERRA-2 OPeNDAP."""
     year, month = d.year, d.month
     date_str = d.strftime("%Y%m%d")
-    version = _merra2_version(year)
+    version = _merra2_version(year, month)
     lat_idx = _merra2_lat_idx(lat)
     lon_idx = _merra2_lon_idx(lon)
 

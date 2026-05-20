@@ -9,6 +9,7 @@ import pandas as pd
 import pytest
 
 from src.soiling import weather_client as wc
+from src.soiling.weather_client import _merra2_version
 
 
 def _mock_weather_response(n_days: int = 7) -> dict:
@@ -44,6 +45,28 @@ def _patched_session(json_payload):
     sess = MagicMock()
     sess.get.return_value = resp
     return sess
+
+
+class TestMerra2Version:
+    """Stream prefix selection — four era bands (100/200/300/400)."""
+
+    def test_pre_2011_streams(self):
+        assert _merra2_version(1985) == "100"
+        assert _merra2_version(1995) == "200"
+        assert _merra2_version(2005) == "300"
+
+    def test_stream_400_all_post_2010(self):
+        assert _merra2_version(2011, 1) == "400"
+        assert _merra2_version(2019, 12) == "400"
+        assert _merra2_version(2020, 5) == "400"
+        assert _merra2_version(2020, 6) == "400"   # no 401 stream — stays on 400
+        assert _merra2_version(2021, 1) == "400"
+        assert _merra2_version(2025, 1) == "400"
+
+    def test_default_month_arg_ignored(self):
+        # month parameter is accepted but not used in version selection
+        assert _merra2_version(2020) == "400"
+        assert _merra2_version(2021) == "400"
 
 
 def test_fetch_weather_returns_daily_indexed_frame():
@@ -82,7 +105,11 @@ def test_fetch_combined_continues_when_aq_fails():
         sess.get.side_effect = get
         return sess
 
-    with patch.object(wc, "_session", side_effect=fake_session_factory):
+    # Ensure MERRA-2 path is also blocked so the fallback triggers regardless
+    # of whether NASA_EARTHDATA_TOKEN is set in the environment.
+    with patch.object(wc, "_session", side_effect=fake_session_factory), \
+         patch.object(wc, "fetch_air_quality_merra2", side_effect=RuntimeError("merra2 flake")), \
+         patch.dict(wc.os.environ, {"NASA_EARTHDATA_TOKEN": "fake_token"}):
         df = wc.fetch_combined(36.97, -122.03, date(2026, 3, 1), date(2026, 3, 3))
     assert len(df) == 3
     assert "precipitation_sum" in df.columns
