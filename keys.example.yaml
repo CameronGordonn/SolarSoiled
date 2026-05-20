@@ -1,0 +1,16 @@
+# Per-partner API key registry.
+# Copy to keys.yaml (gitignored), fill in real keys, and set:
+#   SOLARSOILED_KEYS_FILE=keys.yaml
+#
+# partner_id: "*" is a wildcard — the key can read/write any partner's data.
+
+keys:
+  sk_acme_abc123:
+    partner_id: acme-solar
+    name: Acme Solar Inc.
+    scopes: [run, read, feedback]
+
+  sk_internal_xyz:
+    partner_id: "*"
+    name: Internal admin
+    scopes: [run, read, feedback]

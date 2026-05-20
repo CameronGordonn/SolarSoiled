@@ -257,6 +257,9 @@ azure_credentials.json
 *.key
 *.pem
 *.crt
+
+# Per-partner API key registry (use keys.example.yaml as template)
+keys.yaml
 secrets/
 config.yaml
 config.yml

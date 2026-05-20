@@ -5,6 +5,8 @@ Start with: uvicorn solarsoiled.api:app --reload
 or:         solarsoiled-api  (after pip install -e ".[api]")
 
 Auth: set SOLARSOILED_API_KEY env var. If unset, auth is disabled (local dev).
+Per-partner auth: set SOLARSOILED_KEYS_FILE to a YAML file mapping keys to partner_ids.
+If unset, falls back to single-key mode (all authenticated callers are equal).
 """
 from __future__ import annotations
 
@@ -53,6 +55,19 @@ app.add_middleware(
 
 _API_KEY = os.environ.get("SOLARSOILED_API_KEY", "")
 
+
+def _load_key_registry() -> dict | None:
+    path = os.environ.get("SOLARSOILED_KEYS_FILE", "")
+    if not path:
+        return None
+    import yaml
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    return data.get("keys", {})
+
+
+_KEY_REGISTRY: dict | None = _load_key_registry()
+
 _SCRIPT_FILES = {
     "tile": REPO_ROOT / "scripts" / "02_tile_naip_image.py",
     "infer": REPO_ROOT / "scripts" / "04_infer_yolov8_seg.py",
@@ -76,9 +91,30 @@ def _load_script(key: str):
 
 # ---------- auth + input validation ----------
 
-async def _check_key(x_api_key: str = Header(default="")) -> None:
-    if _API_KEY and x_api_key != _API_KEY:
+async def _resolve_caller(x_api_key: str = Header(default="")) -> str | None:
+    """Validate the API key and return the caller's partner_id, or None for unrestricted access.
+
+    Returns None in three cases: single-key mode (SOLARSOILED_KEYS_FILE unset),
+    wildcard key (partner_id: "*"), or no key configured at all (local dev).
+    """
+    if _KEY_REGISTRY is None:
+        # single-key mode — backward compatible
+        if _API_KEY and x_api_key != _API_KEY:
+            raise HTTPException(status_code=401, detail="Invalid or missing X-API-Key")
+        return None
+    entry = _KEY_REGISTRY.get(x_api_key)
+    if entry is None:
         raise HTTPException(status_code=401, detail="Invalid or missing X-API-Key")
+    pid = entry.get("partner_id", "")
+    return None if pid == "*" else pid
+
+
+def _assert_partner_access(caller_partner_id: str | None, requested_partner_id: str | None) -> None:
+    """Raise 403 if the caller's key is partner-bound and doesn't match the requested partner."""
+    if caller_partner_id is None or requested_partner_id is None:
+        return  # wildcard key, single-key mode, or ownerless job
+    if caller_partner_id != requested_partner_id:
+        raise HTTPException(status_code=403, detail="Access denied: key not authorized for this partner")
 
 
 _PARTNER_ID_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_\-]{0,62}$")
@@ -242,28 +278,31 @@ async def health_ready():
     return {"status": "ok" if not any("registry" in n for n in notes) else "degraded", "notes": notes}
 
 
-@app.post("/jobs", dependencies=[Depends(_check_key)])
-async def create_run_job(req: RunRequest):
+@app.post("/jobs")
+async def create_run_job(req: RunRequest, caller: str | None = Depends(_resolve_caller)):
     if req.partner_id is not None:
         _validate_partner_id(req.partner_id)
+        _assert_partner_access(caller, req.partner_id)
     record = create_job(partner_id=req.partner_id)
     submit(record, _run_pipeline, req=req)
     return {"job_id": record.job_id, "status": record.status, "partner_id": record.partner_id}
 
 
-@app.get("/jobs/{job_id}", dependencies=[Depends(_check_key)])
-async def get_job_status(job_id: str):
+@app.get("/jobs/{job_id}")
+async def get_job_status(job_id: str, caller: str | None = Depends(_resolve_caller)):
     record = get_job(job_id)
     if not record:
         raise HTTPException(status_code=404, detail="Job not found")
+    _assert_partner_access(caller, record.partner_id)
     return record.to_dict()
 
 
-@app.get("/jobs/{job_id}/events", dependencies=[Depends(_check_key)])
-async def job_events(job_id: str):
+@app.get("/jobs/{job_id}/events")
+async def job_events(job_id: str, caller: str | None = Depends(_resolve_caller)):
     record = get_job(job_id)
     if not record:
         raise HTTPException(status_code=404, detail="Job not found")
+    _assert_partner_access(caller, record.partner_id)
 
     async def stream():
         loop = asyncio.get_event_loop()
@@ -287,9 +326,10 @@ async def job_events(job_id: str):
     )
 
 
-@app.post("/feedback", dependencies=[Depends(_check_key)])
-async def submit_feedback(req: FeedbackRequest):
+@app.post("/feedback")
+async def submit_feedback(req: FeedbackRequest, caller: str | None = Depends(_resolve_caller)):
     _validate_partner_id(req.partner_id)
+    _assert_partner_access(caller, req.partner_id)
     paths = AoiPaths(req.partner_id)
     paths.ensure_root()
 
@@ -319,27 +359,30 @@ async def submit_feedback(req: FeedbackRequest):
     }
 
 
-@app.get("/results/{partner_id}/map", dependencies=[Depends(_check_key)])
-async def get_risk_map(partner_id: str):
+@app.get("/results/{partner_id}/map")
+async def get_risk_map(partner_id: str, caller: str | None = Depends(_resolve_caller)):
     _validate_partner_id(partner_id)
+    _assert_partner_access(caller, partner_id)
     p = AoiPaths(partner_id).root / "risk_map.html"
     if not p.exists():
         raise HTTPException(status_code=404, detail="Map not yet generated — run a job first")
     return FileResponse(str(p), media_type="text/html")
 
 
-@app.get("/results/{partner_id}/arrays", dependencies=[Depends(_check_key)])
-async def get_arrays(partner_id: str):
+@app.get("/results/{partner_id}/arrays")
+async def get_arrays(partner_id: str, caller: str | None = Depends(_resolve_caller)):
     _validate_partner_id(partner_id)
+    _assert_partner_access(caller, partner_id)
     p = AoiPaths(partner_id).risk_geojson
     if not p.exists():
         raise HTTPException(status_code=404, detail="Arrays not yet scored")
     return FileResponse(str(p), media_type="application/geo+json")
 
 
-@app.get("/results/{partner_id}/recommendations", dependencies=[Depends(_check_key)])
-async def get_recommendations(partner_id: str):
+@app.get("/results/{partner_id}/recommendations")
+async def get_recommendations(partner_id: str, caller: str | None = Depends(_resolve_caller)):
     _validate_partner_id(partner_id)
+    _assert_partner_access(caller, partner_id)
     p = AoiPaths(partner_id).array_recommendations_json
     if not p.exists():
         raise HTTPException(status_code=404, detail="Recommendations not yet generated")
