@@ -103,7 +103,11 @@ def _get_with_retry(sess, url: str, params: dict, timeout: int):
 
 
 def _merra2_version(year: int, month: int = 1) -> str:  # noqa: ARG001
-    """MERRA-2 stream label embedded in filenames."""
+    """MERRA-2 base stream label embedded in filenames (100/200/300/400).
+
+    NASA GES DISC also publishes select months as stream 401 (reprocessed data).
+    _fetch_merra2_day handles the 400 → 401 fallback on 404.
+    """
     if year >= 2011:
         return "400"
     if year >= 2001:
@@ -180,24 +184,37 @@ def _fetch_merra2_day(
     lon: float,
     d: date,
 ) -> dict[str, float]:
-    """Fetch daily-mean PM2.5 and PM10 for one day from MERRA-2 OPeNDAP."""
+    """Fetch daily-mean PM2.5 and PM10 for one day from MERRA-2 OPeNDAP.
+
+    NASA GES DISC uses stream 400 for most post-2010 dates but has reprocessed
+    specific months as stream 401 (e.g. 2020-09, 2021-06 to 2021-09). We try
+    stream 400 first and transparently retry with 401 on a 404.
+    """
     year, month = d.year, d.month
     date_str = d.strftime("%Y%m%d")
-    version = _merra2_version(year, month)
     lat_idx = _merra2_lat_idx(lat)
     lon_idx = _merra2_lon_idx(lon)
-
-    filename = f"MERRA2_{version}.tavg1_2d_aer_Nx.{date_str}.nc4"
     constraint = ",".join(f"{v}[0:23][{lat_idx}][{lon_idx}]" for v in _M2_VARS)
-    url = f"{MERRA2_BASE}/{year}/{month:02d}/{filename}.ascii?{constraint}"
 
-    for attempt in range(MAX_RETRIES + 1):
-        resp = sess.get(url, timeout=60)
-        if resp.status_code == 429:
-            if attempt >= MAX_RETRIES:
-                resp.raise_for_status()
-            time.sleep(BASE_BACKOFF_S * (2 ** attempt))
-            continue
+    # Try stream 400 first; fall back to 401 if the file was reprocessed.
+    versions_to_try = [_merra2_version(year, month)]
+    if versions_to_try[0] == "400":
+        versions_to_try.append("401")
+
+    resp = None
+    for version in versions_to_try:
+        filename = f"MERRA2_{version}.tavg1_2d_aer_Nx.{date_str}.nc4"
+        url = f"{MERRA2_BASE}/{year}/{month:02d}/{filename}.ascii?{constraint}"
+        for attempt in range(MAX_RETRIES + 1):
+            resp = sess.get(url, timeout=60)
+            if resp.status_code == 429:
+                if attempt >= MAX_RETRIES:
+                    resp.raise_for_status()
+                time.sleep(BASE_BACKOFF_S * (2 ** attempt))
+                continue
+            break  # got a non-429 response
+        if resp.status_code == 404 and version != versions_to_try[-1]:
+            continue  # retry with next version
         resp.raise_for_status()
         break
 
