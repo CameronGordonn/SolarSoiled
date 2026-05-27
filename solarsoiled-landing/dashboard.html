@@ -47,6 +47,9 @@
       <!-- Area stats -->
       <div class="sidebar-section" id="stats-section">
         <h3>Area Overview</h3>
+        <p id="model-description" style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem;line-height:1.45">
+          Spatial-CV AUC 0.728 — trained on 1,000 NREL station-years across 15 states using weather, location, and structural features.
+        </p>
         <div class="stat-chips">
           <div class="stat-chip"><span class="chip-val" id="stat-total">—</span><span class="chip-lbl">arrays detected</span></div>
           <div class="stat-chip"><span class="chip-val" id="stat-high">—</span><span class="chip-lbl">high risk</span></div>
@@ -71,14 +74,20 @@
           <div class="risk-gauge-fill" style="width:0%"></div>
         </div>
 
+        <p id="detail-model-label" style="font-size:.7rem;color:var(--muted);margin-bottom:.4rem">ML Model (XGBoost)</p>
+
         <div class="detail-grid">
           <span class="lbl">Risk score</span>  <span class="val" id="detail-score">—</span>
           <span class="lbl">Array area</span>   <span class="val" id="detail-area">—</span>
           <span class="lbl">Est. loss</span>    <span class="val" id="detail-soiling">—</span>
         </div>
-        <p style="font-size:.75rem;color:var(--muted)">
-          Soiling loss estimated from our XGBoost model trained on 1,000 NREL station-years across 15 states.
-        </p>
+
+        <details style="margin-top:.4rem;margin-bottom:.5rem">
+          <summary style="font-size:.75rem;color:var(--muted);cursor:pointer">Compare all models</summary>
+          <table class="scores-table" style="margin-top:.4rem;width:100%">
+            <tbody id="detail-all-scores"></tbody>
+          </table>
+        </details>
       </div>
 
       <!-- Recalculate -->
@@ -177,8 +186,25 @@
 
     </aside>
 
-    <!-- MAP -->
-    <div style="position:relative;flex:1;display:flex;flex-direction:column">
+    <!-- MAP COLUMN -->
+    <div style="position:relative;flex:1;display:flex;flex-direction:column;min-width:0">
+
+      <!-- Model tab bar -->
+      <div class="model-tabs" id="model-tabs">
+        <button class="model-tab active" data-model="xgb">
+          <span class="tab-icon">🤖</span>
+          <span>ML Model <span class="tab-sub">(XGBoost)</span></span>
+        </button>
+        <button class="model-tab" data-model="somos">
+          <span class="tab-icon">⚗️</span>
+          <span>SOMOSclean <span class="tab-sub">(Physics)</span></span>
+        </button>
+        <button class="model-tab" data-model="kimber">
+          <span class="tab-icon">📐</span>
+          <span>Kimber 2007 <span class="tab-sub">(Physics)</span></span>
+        </button>
+      </div>
+
       <div id="map" style="flex:1;min-height:0"></div>
       <div id="map-loading">
         <div class="spinner"></div>

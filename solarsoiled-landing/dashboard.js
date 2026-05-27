@@ -46,6 +46,26 @@ function soilingPct(score) {
   return { lo: Math.max(1, (pct * 0.6).toFixed(1)), hi: (pct * 1.4).toFixed(1) };
 }
 
+// ── model config ──────────────────────────────────────────────────────────────
+const MODEL_CONFIGS = {
+  xgb: {
+    key:   'risk_score',
+    label: 'ML Model (XGBoost)',
+    desc:  'Spatial-CV AUC 0.728 — trained on 1,000 NREL station-years across 15 states using weather, location, and structural features.',
+  },
+  somos: {
+    key:   'somos_score',
+    label: 'SOMOSclean Physics',
+    desc:  'ENEL SOMOSclean trajectory model — complementary exponential soiling accumulation with PM10-driven dust days and rain reset.',
+  },
+  kimber: {
+    key:   'kimber_score',
+    label: 'Kimber 2007',
+    desc:  'Linear PM2.5 deposition model — accumulates proportional to daily PM2.5 and resets fully on any rain ≥ 1 mm.',
+  },
+};
+let _activeModel = 'xgb';
+
 // ── state ─────────────────────────────────────────────────────────────────────
 let _map, _geojsonLayer, _features = [], _selectedLayer = null, _selectedId = null;
 
@@ -54,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initMap();
   loadArrays();
   initCalculator();
+  initModelTabs();
   handleQrParam();
 });
 
@@ -108,12 +129,18 @@ async function loadArrays() {
   setLoading(false);
 }
 
+function getScore(props) {
+  const key = MODEL_CONFIGS[_activeModel].key;
+  const v = props?.[key];
+  return (v != null && !isNaN(v)) ? v : (props?.risk_score ?? 0);
+}
+
 function renderArrays(fc) {
   if (_geojsonLayer) _map.removeLayer(_geojsonLayer);
 
   _geojsonLayer = L.geoJSON(fc, {
     style: feat => {
-      const score = feat.properties?.risk_score ?? 0;
+      const score = getScore(feat.properties);
       return {
         color:       '#1e293b',
         weight:      1,
@@ -124,7 +151,7 @@ function renderArrays(fc) {
     onEachFeature: (feat, layer) => {
       layer.on('click', () => selectArray(feat, layer));
       const p = feat.properties || {};
-      const score = p.risk_score ?? 0;
+      const score = getScore(p);
       layer.bindTooltip(
         `<b>Array #${p.array_id}</b><br>Risk: ${riskLabel(score)} (${score.toFixed(2)})<br>Area: ${p.area_m2} m²`,
         { sticky: true }
@@ -133,15 +160,37 @@ function renderArrays(fc) {
   }).addTo(_map);
 }
 
-function selectArray(feat, layer) {
-  // Reset previous highlight
+function refreshMapColors() {
+  if (!_geojsonLayer) return;
+  _geojsonLayer.eachLayer(layer => {
+    if (layer === _selectedLayer) return;
+    const score = getScore(layer.feature?.properties);
+    layer.setStyle({ fillColor: riskColor(score), fillOpacity: 0.65, weight: 1, color: '#1e293b' });
+    // Refresh tooltip
+    const p = layer.feature?.properties || {};
+    const s = getScore(p);
+    layer.setTooltipContent(
+      `<b>Array #${p.array_id}</b><br>Risk: ${riskLabel(s)} (${s.toFixed(2)})<br>Area: ${p.area_m2} m²`
+    );
+  });
+  // Re-highlight selected if present
   if (_selectedLayer) {
-    _geojsonLayer.resetStyle(_selectedLayer);
+    const score = getScore(_selectedLayer.feature?.properties);
+    _selectedLayer.setStyle({ weight: 3, color: '#F7B731', fillColor: riskColor(score), fillOpacity: 0.8 });
+  }
+}
+
+function selectArray(feat, layer) {
+  // Reset previous highlight using model-aware color
+  if (_selectedLayer && _selectedLayer !== layer) {
+    const prevScore = getScore(_selectedLayer.feature?.properties);
+    _selectedLayer.setStyle({ weight: 1, color: '#1e293b', fillColor: riskColor(prevScore), fillOpacity: 0.65 });
   }
   _selectedLayer = layer;
   _selectedId    = feat.properties?.array_id;
 
-  layer.setStyle({ weight: 3, color: '#F7B731', fillOpacity: 0.8 });
+  const score = getScore(feat.properties);
+  layer.setStyle({ weight: 3, color: '#F7B731', fillColor: riskColor(score), fillOpacity: 0.8 });
   layer.bringToFront();
 
   populateDetail(feat);
@@ -153,9 +202,10 @@ function selectArray(feat, layer) {
 function populateDetail(feat) {
   const p   = feat.properties || {};
   const id  = p.array_id ?? '?';
-  const score = p.risk_score ?? 0;
+  const score = getScore(p);
   const area  = p.area_m2  ?? '?';
   const sl    = soilingPct(score);
+  const cfg   = MODEL_CONFIGS[_activeModel];
 
   document.getElementById('detail-id').textContent    = `Array #${id}`;
   document.getElementById('detail-badge').textContent  = riskLabel(score);
@@ -167,6 +217,22 @@ function populateDetail(feat) {
   const fill = document.querySelector('.risk-gauge-fill');
   fill.style.width      = `${Math.round(score * 100)}%`;
   fill.style.background = riskColor(score);
+
+  // Show active model name under the score gauge
+  const modelLabel = document.getElementById('detail-model-label');
+  if (modelLabel) modelLabel.textContent = cfg.label;
+
+  // Show all three scores if available
+  const scoreTable = document.getElementById('detail-all-scores');
+  if (scoreTable) {
+    const xgb   = (p.risk_score   != null) ? (+p.risk_score).toFixed(2)   : '—';
+    const somos = (p.somos_score  != null) ? (+p.somos_score).toFixed(2)  : '—';
+    const kimber= (p.kimber_score != null) ? (+p.kimber_score).toFixed(2) : '—';
+    scoreTable.innerHTML =
+      `<tr><td class="lbl">ML (XGBoost)</td><td class="val">${xgb}</td></tr>` +
+      `<tr><td class="lbl">SOMOSclean</td><td class="val">${somos}</td></tr>` +
+      `<tr><td class="lbl">Kimber 2007</td><td class="val">${kimber}</td></tr>`;
+  }
 
   // Pre-fill recalc threshold
   document.getElementById('threshold-val').value =
@@ -230,9 +296,9 @@ document.getElementById('threshold-val')?.addEventListener('input', e => {
 // ── stats overview ────────────────────────────────────────────────────────────
 function updateStats() {
   const n = _features.length;
-  const high   = _features.filter(f => (f.properties?.risk_score ?? 0) >= 0.65).length;
+  const high   = _features.filter(f => getScore(f.properties) >= 0.65).length;
   const medium = _features.filter(f => {
-    const s = f.properties?.risk_score ?? 0;
+    const s = getScore(f.properties);
     return s >= 0.40 && s < 0.65;
   }).length;
   const avgArea = n
@@ -306,6 +372,32 @@ function handleQrParam() {
   };
 
   setTimeout(tryFocus, 800);
+}
+
+// ── model tabs ────────────────────────────────────────────────────────────────
+function initModelTabs() {
+  document.querySelectorAll('.model-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const model = btn.dataset.model;
+      if (model === _activeModel) return;
+      _activeModel = model;
+
+      document.querySelectorAll('.model-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      refreshMapColors();
+      updateStats();
+
+      // If an array is already selected, refresh its detail panel
+      if (_selectedLayer) {
+        populateDetail(_selectedLayer.feature);
+      }
+
+      // Show model description in stats area
+      const descEl = document.getElementById('model-description');
+      if (descEl) descEl.textContent = MODEL_CONFIGS[model].desc;
+    });
+  });
 }
 
 // ── utility ───────────────────────────────────────────────────────────────────

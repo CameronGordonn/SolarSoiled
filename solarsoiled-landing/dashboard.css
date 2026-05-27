@@ -124,6 +124,11 @@ body {
 .badge-medium { background: #fef9c3; color: #92400e; }
 .badge-low    { background: #dcfce7; color: #166534; }
 
+.scores-table { font-size: .8rem; border-collapse: collapse; }
+.scores-table td { padding: .15rem .3rem; }
+.scores-table .lbl { color: var(--muted); }
+.scores-table .val { font-weight: 700; text-align: right; }
+
 .detail-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -254,6 +259,42 @@ body {
 }
 .stat-chip .chip-val { font-weight: 700; color: var(--navy); }
 .stat-chip .chip-lbl { color: var(--muted); }
+
+/* ── model tab bar ── */
+.model-tabs {
+  display: flex;
+  background: var(--navy);
+  border-bottom: 2px solid var(--teal);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+.model-tab {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .55rem 1.1rem;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 3px solid transparent;
+  transition: color .15s, border-color .15s;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.model-tab:hover { color: #e2e8f0; }
+.model-tab.active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+.model-tab .tab-icon { font-size: .95rem; }
+.model-tab .tab-sub {
+  font-weight: 400;
+  color: inherit;
+  opacity: .7;
+}
 
 /* ── map ── */
 #map {
