@@ -10,7 +10,7 @@
 
 // ── config ────────────────────────────────────────────────────────────────────
 
-const API_BASE   = 'https://solarsoiled-api.onrender.com';  // Render.com backend (update after deploy)
+const API_BASE   = 'https://solarsoiled-api.onrender.com';
 const API_KEY    = '';                               // set if your backend requires one
 const PARTNER_ID = 'santa-cruz-outreach-v1';
 const ARRAYS_URL = `${API_BASE}/results/${PARTNER_ID}/arrays`;
