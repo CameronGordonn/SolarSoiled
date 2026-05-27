@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Solar Array — SolarSoiled Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="dashboard.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <!-- Leaflet.js -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="db-nav">
+    <a href="index.html" class="brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="5" fill="#F7B731"/>
+        <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" stroke="#F7B731" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      Solar<span class="dot">Soiled</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#array-detail">Your Array</a></li>
+      <li><a href="#recalc-section">Recalculate</a></li>
+      <li><a href="#calculator-section">Calculator</a></li>
+    </ul>
+    <a href="index.html" class="btn-home">← Home</a>
+  </nav>
+
+  <!-- MAIN LAYOUT -->
+  <div class="dashboard-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+      <!-- Header -->
+      <div class="sidebar-header">
+        <h2>Santa Cruz Solar Dashboard</h2>
+        <p>Detected arrays scored for soiling risk. Click any array on the map to see your personalized report.</p>
+      </div>
+
+      <!-- Area stats -->
+      <div class="sidebar-section" id="stats-section">
+        <h3>Area Overview</h3>
+        <div class="stat-chips">
+          <div class="stat-chip"><span class="chip-val" id="stat-total">—</span><span class="chip-lbl">arrays detected</span></div>
+          <div class="stat-chip"><span class="chip-val" id="stat-high">—</span><span class="chip-lbl">high risk</span></div>
+          <div class="stat-chip"><span class="chip-val" id="stat-medium">—</span><span class="chip-lbl">medium risk</span></div>
+          <div class="stat-chip"><span class="chip-val" id="stat-avg-area">—</span><span class="chip-lbl">avg area</span></div>
+        </div>
+      </div>
+
+      <!-- Array detail (hidden until user clicks) -->
+      <div class="sidebar-section" id="detail-placeholder" style="color:var(--muted);font-size:.82rem;padding:1.2rem 1.25rem;">
+        ← Click any array on the map to see its soiling risk details.
+      </div>
+
+      <div class="sidebar-section" id="array-detail">
+        <h3>Your Array</h3>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+          <span id="detail-id" style="font-weight:700;font-size:.95rem"></span>
+          <span id="detail-badge" class="detail-badge"></span>
+        </div>
+
+        <div class="risk-gauge" title="Soiling risk level">
+          <div class="risk-gauge-fill" style="width:0%"></div>
+        </div>
+
+        <div class="detail-grid">
+          <span class="lbl">Risk score</span>  <span class="val" id="detail-score">—</span>
+          <span class="lbl">Array area</span>   <span class="val" id="detail-area">—</span>
+          <span class="lbl">Est. loss</span>    <span class="val" id="detail-soiling">—</span>
+        </div>
+        <p style="font-size:.75rem;color:var(--muted)">
+          Soiling loss estimated from our XGBoost model trained on 1,000 NREL station-years across 15 states.
+        </p>
+      </div>
+
+      <!-- Recalculate -->
+      <div class="sidebar-section" id="recalc-section">
+        <h3>Update Your Recommendation</h3>
+        <div class="recalc-form">
+          <div>
+            <label for="last-cleaned">When did you last clean?</label>
+            <input type="date" id="last-cleaned" />
+          </div>
+          <div>
+            <label>Risk threshold: <span id="threshold-display">0.60</span></label>
+            <input type="range" id="threshold-val" min="0.30" max="0.90" step="0.05" value="0.60" />
+            <div class="threshold-row"><span>Conservative (0.30)</span><span>Strict (0.90)</span></div>
+          </div>
+          <button class="btn-recalc" id="btn-recalc">Recalculate</button>
+          <div id="recalc-result"></div>
+        </div>
+        <p style="font-size:.72rem;color:var(--muted);margin-top:.5rem">
+          Select an array on the map first, then enter your last-cleaned date. Recalculation uses our live soiling model and 7-day weather forecast.
+        </p>
+      </div>
+
+      <!-- Energy & money calculator -->
+      <div class="sidebar-section" id="calculator-section">
+        <h3>Energy &amp; Money Calculator</h3>
+        <div class="calc-form">
+
+          <div class="calc-field">
+            <label for="calc-size">System size</label>
+            <div class="input-row">
+              <input type="number" id="calc-size" value="6" min="0.5" max="1000" step="0.5" />
+              <span class="unit">kW</span>
+            </div>
+          </div>
+
+          <div class="calc-field">
+            <label for="calc-rate">Your electricity rate</label>
+            <div class="input-row">
+              <input type="number" id="calc-rate" value="0.25" min="0.05" max="1.00" step="0.01" />
+              <span class="unit">$/kWh</span>
+            </div>
+          </div>
+
+          <div class="calc-field">
+            <label for="calc-sun">Peak sun hours/day</label>
+            <div class="input-row">
+              <input type="number" id="calc-sun" value="5.5" min="1" max="10" step="0.1" />
+              <span class="unit">h/day</span>
+            </div>
+            <span style="font-size:.72rem;color:var(--muted)">Santa Cruz avg: 5.5 h/day</span>
+          </div>
+
+          <div class="calc-field">
+            <label for="calc-soiling">Estimated soiling loss</label>
+            <div class="input-row">
+              <input type="number" id="calc-soiling" value="5.0" min="0.5" max="30" step="0.1" />
+              <span class="unit">% output loss</span>
+            </div>
+            <span style="font-size:.72rem;color:var(--muted)">Auto-filled from your array's risk score when you click it.</span>
+          </div>
+
+          <div class="calc-results">
+            <div class="result-row">
+              <span>Annual energy lost</span>
+              <span class="val" id="calc-annual-kwh">—</span>
+            </div>
+            <div class="result-row">
+              <span>Annual $ lost</span>
+              <span class="val" id="calc-annual-usd">—</span>
+            </div>
+            <div class="result-row">
+              <span>Monthly $ lost</span>
+              <span class="val" id="calc-monthly-usd">—</span>
+            </div>
+            <div class="result-row">
+              <span>Est. $ recovered if cleaned</span>
+              <span class="val" id="calc-recovery">—</span>
+            </div>
+          </div>
+          <p class="calc-note">
+            Formula: annual loss = system_kw × sun_h × 365 × soiling%. Recovery assumes ~85% of theoretical max (accounting for partial soiling and seasonal variation). Not a guarantee — use as a planning estimate.
+          </p>
+        </div>
+      </div>
+
+      <!-- Beta disclosure -->
+      <div class="sidebar-section" style="background:#fffbeb">
+        <h3>Beta Disclosure</h3>
+        <p style="font-size:.75rem;color:var(--muted);line-height:1.5">
+          Detection: SAHI F1 = 0.40 (beta gate ≥ 0.55).<br>
+          Risk model: spatial-CV AUC 0.728 ✓ / holdout AUC 0.679 (target ≥ 0.70).<br>
+          Arrays and scores are research-grade — suitable for triage and planning, not financial decisions.
+        </p>
+      </div>
+
+    </aside>
+
+    <!-- MAP -->
+    <div style="position:relative;flex:1">
+      <div id="map"></div>
+      <div id="map-loading">
+        <div class="spinner"></div>
+        <span>Loading array data…</span>
+      </div>
+    </div>
+
+  </div><!-- /.dashboard-layout -->
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
