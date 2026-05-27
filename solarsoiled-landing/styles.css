@@ -338,6 +338,54 @@ a   { color: inherit; text-decoration: none; }
 
 .hidden { display: none !important; }
 
+/* ── hero dashboard link ── */
+.hero-links { margin: .75rem 0 .25rem; }
+.hero-link-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  background: rgba(247,183,49,.15);
+  border: 1px solid rgba(247,183,49,.4);
+  color: var(--gold);
+  padding: .35rem .85rem;
+  border-radius: 20px;
+  font-size: .85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background .2s;
+}
+.hero-link-pill:hover { background: rgba(247,183,49,.25); }
+
+/* ── outreach section ── */
+.outreach-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+.outreach-card {
+  background: #fff;
+  border: 1px solid var(--lt-gray);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+}
+.outreach-icon {
+  font-size: 2rem;
+  margin-bottom: .75rem;
+  display: block;
+}
+.outreach-card h3 {
+  font-size: 1rem;
+  margin-bottom: .5rem;
+  color: var(--navy);
+}
+.outreach-card p { font-size: .875rem; color: var(--gray); line-height: 1.6; }
+
+@media (max-width: 640px) {
+  .outreach-grid { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 900px) {
   .hero-grid, .solution-grid { grid-template-columns: 1fr; }
   .hero h1 { font-size: 2.4rem; }

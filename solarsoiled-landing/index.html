@@ -23,6 +23,7 @@
         <li><a href="#problem">Problem</a></li>
         <li><a href="#solution">Solution</a></li>
         <li><a href="#how-it-works">How It Works</a></li>
+        <li><a href="#outreach">Outreach</a></li>
         <li><a href="#demo">Live Demo</a></li>
         <li><a href="#outputs">Outputs</a></li>
         <li><a href="#partners">Partners</a></li>
@@ -48,6 +49,9 @@
         <div class="hero-actions">
           <a href="#cta" class="btn btn-lg">Request a Demo</a>
           <a href="#how-it-works" class="btn btn-lg btn-outline">See How It Works</a>
+        </div>
+        <div class="hero-links">
+          <a href="dashboard.html" class="hero-link-pill">🗺 Live Santa Cruz Dashboard ↗</a>
         </div>
         <p class="hero-note">No hardware install &bull; No flights required &mdash; built on public NAIP 60cm aerial imagery</p>
         <p class="hero-beta">Currently in early beta &mdash; detection accuracy and coverage are still improving.</p>
@@ -75,9 +79,9 @@
           <p>Spatial cross-validation on 1,000 NREL panel-years across 15 states. Spatial-CV gate cleared (≥0.70). Holdout-2022 AUC: 0.679 (target ≥0.70, in progress).</p>
         </div>
         <div class="status-card">
-          <span class="status-label">Beta Caveat</span>
-          <strong class="status-metric">Design-partner ready</strong>
-          <p>Useful for pilots and workflow testing today. Every output carries explicit quality metadata so you always know what you're acting on.</p>
+          <span class="status-label">Live Deployment</span>
+          <strong class="status-metric">Deployed ✓</strong>
+          <p>Backend API live on Render. Santa Cruz homeowner dashboard deployed on GitHub Pages with 334 scored arrays and three soiling models to compare.</p>
         </div>
       </div>
     </div>
@@ -171,6 +175,63 @@
     </div>
   </section>
 
+  <!-- OUTREACH PROGRAM -->
+  <section id="outreach" class="section bg-light">
+    <div class="container">
+      <span class="section-tag">Community Outreach</span>
+      <h2>From Satellite to Doorstep &mdash; the Santa Cruz Pilot</h2>
+      <p class="section-body">
+        We identified the 50 highest-risk solar arrays in Santa Cruz County
+        and built a full outreach loop: printed postcards mailed to each homeowner,
+        a QR code linking to their personalized risk report, and an interactive
+        dashboard where they can explore the data for themselves.
+      </p>
+      <div class="outreach-grid">
+        <div class="outreach-card">
+          <div class="outreach-icon">📬</div>
+          <h3>Personalized Mailers</h3>
+          <p>
+            Each postcard shows the homeowner's specific array area, soiling
+            risk score, estimated performance loss, and recommended cleaning window
+            &mdash; generated automatically from the pipeline output.
+          </p>
+        </div>
+        <div class="outreach-card">
+          <div class="outreach-icon">📱</div>
+          <h3>QR Code → Dashboard</h3>
+          <p>
+            One scan lands the homeowner on their array, auto-zoomed and highlighted
+            on the map. They can adjust their last-cleaned date, recalculate risk
+            live via the API, and see the energy and money saved by cleaning.
+          </p>
+        </div>
+        <div class="outreach-card">
+          <div class="outreach-icon">🔬</div>
+          <h3>Three Soiling Models</h3>
+          <p>
+            The dashboard lets users switch between our XGBoost ML model (CV AUC
+            0.728), the ENEL SOMOSclean physics model, and the Kimber 2007 linear
+            PM2.5 model &mdash; seeing how three different scientific approaches
+            assess the same array.
+          </p>
+        </div>
+        <div class="outreach-card">
+          <div class="outreach-icon">💡</div>
+          <h3>Energy &amp; Money Calculator</h3>
+          <p>
+            Pure client-side calculator: enter system size, electricity rate, and
+            peak sun hours. The dashboard auto-fills estimated soiling loss from
+            the array's risk score and shows annual kWh lost, annual dollar loss,
+            and estimated recovery if cleaned.
+          </p>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:2rem">
+        <a href="dashboard.html" class="btn btn-lg">Explore the Live Dashboard ↗</a>
+      </div>
+    </div>
+  </section>
+
   <!-- LIVE DEMO -->
   <section id="demo" class="section">
     <div class="container">
@@ -233,17 +294,27 @@
         <div class="output-card">
           <img src="assets/icon-heatmap.svg" alt="" class="output-icon" />
           <h3>Per-Array Risk Scores</h3>
-          <p>A 0&ndash;1 soiling-risk score for each array, derived from weather, land cover, elevation, and site context &mdash; refreshed daily.</p>
+          <p>A 0&ndash;1 soiling-risk score for each array from three models: XGBoost ML (CV AUC 0.728), SOMOSclean physics, and Kimber 2007.</p>
         </div>
         <div class="output-card">
           <img src="assets/icon-csv.svg" alt="" class="output-icon" />
-          <h3>Structured Data &amp; API</h3>
-          <p>GeoJSON, CSV, and a beta REST API for <code>/detect</code> and <code>/risk</code>. Every response carries model version and quality metadata.</p>
+          <h3>Live API &amp; Dashboard</h3>
+          <p>REST API live at <code>solarsoiled-api.onrender.com</code>. Homeowner dashboard on GitHub Pages with 334 Santa Cruz arrays, map, calculator, and model switcher.</p>
         </div>
         <div class="output-card">
           <img src="assets/icon-calendar.svg" alt="" class="output-icon" />
           <h3>Cleaning Recommendations</h3>
-          <p>Rule-based <code>/recommend</code> endpoint ships today &mdash; pairs risk scores with 7-day weather forecasts and your last-cleaned date to flag the optimal cleaning window. ML-based ranking follows once we have partner feedback to train against.</p>
+          <p>Rule-based <code>/recommend-quick</code> endpoint pairs risk scores with 7-day weather forecasts and your last-cleaned date to flag the optimal cleaning window.</p>
+        </div>
+        <div class="output-card">
+          <img src="assets/icon-report.svg" alt="" class="output-icon" />
+          <h3>Print-Ready Mailers</h3>
+          <p>Auto-generated 6"×4" PDF postcards per array, with soiling facts and a personalized QR code. Integrated with Lob.com for print-and-mail at ~$1.50/card.</p>
+        </div>
+        <div class="output-card">
+          <img src="assets/icon-upload.svg" alt="" class="output-icon" />
+          <h3>Target Selection</h3>
+          <p>Ranked outreach list combining detection confidence and soiling risk. Spatial join to parcel data for owner names and mailing addresses.</p>
         </div>
       </div>
     </div>
@@ -324,9 +395,8 @@
   </footer>
 
   <script>
-    // Change to your deployed API URL in production
-    const API = 'http://localhost:8000';
-    const API_KEY = 'test';
+    const API = 'https://solarsoiled-api.onrender.com';
+    const API_KEY = '';
 
     const runBtn      = document.getElementById('demo-run');
     const progressEl  = document.getElementById('demo-progress');
