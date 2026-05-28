@@ -176,11 +176,11 @@
 
       <!-- Beta disclosure -->
       <div class="sidebar-section" style="background:#fffbeb">
-        <h3>Beta Disclosure</h3>
+        <h3>Beta</h3>
         <p style="font-size:.75rem;color:var(--muted);line-height:1.5">
-          Detection: box mAP50 = 0.630 (GA gate ≥ 0.70, active retrain).<br>
-          Risk model: spatial-CV AUC 0.728 ✓ / holdout AUC 0.679 (target ≥ 0.70).<br>
-          Arrays and scores are research-grade — suitable for triage and planning, not financial decisions.
+          Detection: box mAP50 = 0.630 (target 0.70, retrain in progress).<br>
+          Risk model: spatial-CV AUC 0.728, holdout AUC 0.679 (target 0.70).<br>
+          Scores are suitable for planning and prioritization.
         </p>
       </div>
 
@@ -192,15 +192,12 @@
       <!-- Model tab bar -->
       <div class="model-tabs" id="model-tabs">
         <button class="model-tab active" data-model="xgb">
-          <span class="tab-icon">🤖</span>
           <span>ML Model <span class="tab-sub">(XGBoost)</span></span>
         </button>
         <button class="model-tab" data-model="somos">
-          <span class="tab-icon">⚗️</span>
           <span>SOMOSclean <span class="tab-sub">(Physics)</span></span>
         </button>
         <button class="model-tab" data-model="kimber">
-          <span class="tab-icon">📐</span>
           <span>Kimber 2007 <span class="tab-sub">(Physics)</span></span>
         </button>
       </div>
