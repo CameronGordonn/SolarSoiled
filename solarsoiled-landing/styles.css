@@ -411,3 +411,4 @@ a   { color: inherit; text-decoration: none; }
 @media (max-width: 640px) {
   .steps-grid, .output-grid, .status-grid { grid-template-columns: 1fr; }
 }
+
