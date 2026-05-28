@@ -44,20 +44,6 @@
         <p>Detected arrays scored for soiling risk. Click any array on the map to see your personalized report.</p>
       </div>
 
-      <!-- Area stats -->
-      <div class="sidebar-section" id="stats-section">
-        <h3>Area Overview</h3>
-        <p id="model-description" style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem;line-height:1.45">
-          Spatial-CV AUC 0.728 — trained on 1,000 NREL station-years across 15 states using weather, location, and structural features.
-        </p>
-        <div class="stat-chips">
-          <div class="stat-chip"><span class="chip-val" id="stat-total">—</span><span class="chip-lbl">arrays detected</span></div>
-          <div class="stat-chip"><span class="chip-val" id="stat-high">—</span><span class="chip-lbl">high risk</span></div>
-          <div class="stat-chip"><span class="chip-val" id="stat-medium">—</span><span class="chip-lbl">medium risk</span></div>
-          <div class="stat-chip"><span class="chip-val" id="stat-avg-area">—</span><span class="chip-lbl">avg area</span></div>
-        </div>
-      </div>
-
       <!-- Array detail (hidden until user clicks) -->
       <div class="sidebar-section" id="detail-placeholder" style="color:var(--muted);font-size:.82rem;padding:1.2rem 1.25rem;">
         ← Click any array on the map to see its soiling risk details.
@@ -174,11 +160,25 @@
         </div>
       </div>
 
+      <!-- Area stats -->
+      <div class="sidebar-section" id="stats-section">
+        <h3>Area Overview</h3>
+        <p id="model-description" style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem;line-height:1.45">
+          Spatial-CV AUC 0.728 — trained on 1,000 NREL station-years across 15 states using weather, location, and structural features.
+        </p>
+        <div class="stat-chips">
+          <div class="stat-chip"><span class="chip-val" id="stat-total">—</span><span class="chip-lbl">arrays detected</span></div>
+          <div class="stat-chip"><span class="chip-val" id="stat-high">—</span><span class="chip-lbl">high risk</span></div>
+          <div class="stat-chip"><span class="chip-val" id="stat-medium">—</span><span class="chip-lbl">medium risk</span></div>
+          <div class="stat-chip"><span class="chip-val" id="stat-avg-area">—</span><span class="chip-lbl">avg area</span></div>
+        </div>
+      </div>
+
       <!-- Beta disclosure -->
       <div class="sidebar-section" style="background:#fffbeb">
         <h3>Beta Disclosure</h3>
         <p style="font-size:.75rem;color:var(--muted);line-height:1.5">
-          Detection: SAHI F1 = 0.40 (beta gate ≥ 0.55).<br>
+          Detection: box mAP50 = 0.630 (GA gate ≥ 0.70, active retrain).<br>
           Risk model: spatial-CV AUC 0.728 ✓ / holdout AUC 0.679 (target ≥ 0.70).<br>
           Arrays and scores are research-grade — suitable for triage and planning, not financial decisions.
         </p>
