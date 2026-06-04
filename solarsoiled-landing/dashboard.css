@@ -349,6 +349,191 @@ body {
 }
 .qr-highlight path { animation: pulse-outline 1.5s ease-in-out 3; }
 
+/* ── area loss banner ── */
+#area-loss-banner { background: #fff; }
+
+.area-loss-agg { display: flex; flex-direction: column; gap: .3rem; }
+
+.area-loss-total {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: -.02em;
+  line-height: 1.2;
+}
+.area-loss-total .loss-range { color: var(--red); }
+.area-loss-total .loss-per-yr {
+  font-size: .72rem;
+  font-weight: 400;
+  color: var(--muted);
+  margin-left: .15rem;
+}
+
+.area-loss-sub {
+  font-size: .74rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.area-loss-high-row {
+  display: flex;
+  align-items: flex-start;
+  gap: .35rem;
+  font-size: .78rem;
+  color: var(--text);
+  background: #fee2e2;
+  border-radius: 6px;
+  padding: .3rem .55rem;
+  margin-top: .15rem;
+}
+.area-loss-cta {
+  font-size: .72rem;
+  color: var(--muted);
+  margin-top: .1rem;
+}
+
+.area-loss-array { display: flex; flex-direction: column; gap: .3rem; }
+.loss-headline {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1.3;
+}
+.loss-headline .loss-val { color: var(--red); }
+.loss-reco {
+  font-size: .76rem;
+  color: var(--text);
+  line-height: 1.45;
+}
+.area-loss-back {
+  background: none;
+  border: none;
+  color: var(--teal);
+  font-size: .72rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-align: left;
+  margin-top: .1rem;
+}
+
+/* ── map search bar ── */
+#map-search-bar {
+  display: flex;
+  background: #1a3a4a;
+  padding: .45rem .75rem;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  flex-shrink: 0;
+  gap: 0;
+}
+#search-input {
+  flex: 1;
+  padding: .4rem .7rem;
+  font-size: .82rem;
+  border: none;
+  border-radius: 6px 0 0 6px;
+  background: rgba(255,255,255,.13);
+  color: #fff;
+  outline: none;
+  font-family: inherit;
+}
+#search-input::placeholder { color: #94a3b8; }
+#search-input:focus { background: rgba(255,255,255,.22); }
+#search-btn {
+  padding: .4rem .8rem;
+  background: var(--gold);
+  color: var(--navy);
+  border: none;
+  border-radius: 0 6px 6px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s;
+  flex-shrink: 0;
+}
+#search-btn:hover  { background: #e6a620; }
+#search-btn:disabled { background: var(--muted); cursor: not-allowed; }
+
+.search-callout {
+  background: #fffbeb;
+  border-bottom: 1px solid #fde68a;
+  padding: .4rem .75rem;
+  font-size: .78rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  flex-shrink: 0;
+}
+.search-callout a { color: var(--teal); font-weight: 600; }
+.search-callout.hidden { display: none; }
+#search-dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: .9rem;
+  color: var(--muted);
+  padding: 0 .2rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* ── search pin marker ── */
+.search-pin { background: transparent !important; border: none !important; }
+.search-pin-dot {
+  width: 18px;
+  height: 18px;
+  background: #3b82f6;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0,0,0,.45);
+}
+
+/* ── weather widget (Leaflet control) ── */
+.weather-widget {
+  background: #fff;
+  border-radius: 6px;
+  padding: .5rem .75rem;
+  font-size: .72rem;
+  box-shadow: var(--shadow);
+  line-height: 1.6;
+  min-width: 155px;
+}
+.ww-title {
+  font-weight: 700;
+  font-size: .74rem;
+  color: var(--navy);
+  margin-bottom: .1rem;
+}
+.ww-loading { font-size: .7rem; color: var(--muted); }
+.ww-row {
+  display: flex;
+  justify-content: space-between;
+  gap: .6rem;
+  color: var(--text);
+}
+.ww-advisory { margin-top: .2rem; font-size: .7rem; font-weight: 600; }
+.ww-advisory.warn { color: #b45309; }
+.ww-advisory.good { color: #166534; }
+
+/* ── fit-bounds control ── */
+.leaflet-control-fit {
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgba(0,0,0,.25);
+  cursor: pointer;
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--navy);
+  padding: .3rem .55rem;
+  white-space: nowrap;
+  border: 1px solid rgba(0,0,0,.2);
+  font-family: inherit;
+  display: block;
+  transition: background .15s;
+}
+.leaflet-control-fit:hover { background: var(--offwhite); }
+
 /* ── responsive ── */
 @media (max-width: 768px) {
   .dashboard-layout { flex-direction: column; height: auto; }

@@ -44,6 +44,14 @@
         <p>Detected arrays scored for soiling risk. Click any array on the map to see your personalized report.</p>
       </div>
 
+      <!-- Area loss banner — always visible on load -->
+      <div class="sidebar-section" id="area-loss-banner">
+        <h3>Estimated Area Loss</h3>
+        <div id="area-loss-content">
+          <p style="font-size:.8rem;color:var(--muted)">Loading…</p>
+        </div>
+      </div>
+
       <!-- Array detail (hidden until user clicks) -->
       <div class="sidebar-section" id="detail-placeholder" style="color:var(--muted);font-size:.82rem;padding:1.2rem 1.25rem;">
         ← Click any array on the map to see its soiling risk details.
@@ -155,7 +163,7 @@
             </div>
           </div>
           <p class="calc-note">
-            Formula: annual loss = system_kw × sun_h × 365 × soiling%. Recovery assumes ~85% of theoretical max (accounting for partial soiling and seasonal variation). Not a guarantee — use as a planning estimate.
+            Formula: annual loss = system_kw × sun_h × 365 × soiling%. Recovery assumes ~85% of theoretical max. <b>Note:</b> rain resets panels — this estimate assumes a dry season with no rainfall. For most CA homeowners, soiling loss is small and rain handles it (UC San Diego study).
           </p>
         </div>
       </div>
@@ -188,6 +196,18 @@
 
     <!-- MAP COLUMN -->
     <div style="position:relative;flex:1;display:flex;flex-direction:column;min-width:0">
+
+      <!-- Address search bar -->
+      <div id="map-search-bar">
+        <input type="text" id="search-input" placeholder="Search your address to find your array…" autocomplete="off" />
+        <button id="search-btn" title="Search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </button>
+      </div>
+      <div id="search-callout" class="search-callout hidden">
+        <span id="search-callout-msg"></span>
+        <button id="search-dismiss" aria-label="Dismiss">✕</button>
+      </div>
 
       <!-- Model tab bar -->
       <div class="model-tabs" id="model-tabs">
