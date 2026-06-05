@@ -556,6 +556,82 @@ function initSearch() {
   const btn   = document.getElementById('search-btn');
   if (!input || !btn) return;
 
+  let _suggestTimer = null;
+  let _activeIdx    = -1;
+
+  // ── suggestions dropdown ────────────────────────────────────────────────────
+  const hideSuggestions = () => {
+    const list = document.getElementById('search-suggestions');
+    list?.classList.add('hidden');
+    _activeIdx = -1;
+  };
+
+  const showSuggestions = results => {
+    const list = document.getElementById('search-suggestions');
+    if (!list || !results.length) { hideSuggestions(); return; }
+
+    list.innerHTML = results.map((r, i) => {
+      // Trim Nominatim's very long display names to first 4 comma-parts
+      const label = r.display_name.split(', ').slice(0, 4).join(', ');
+      return `<li data-idx="${i}" data-display="${r.display_name.replace(/"/g, '&quot;')}"
+                  data-lat="${r.lat}" data-lon="${r.lon}">${label}</li>`;
+    }).join('');
+    list.classList.remove('hidden');
+    _activeIdx = -1;
+
+    list.querySelectorAll('li').forEach(li => {
+      li.addEventListener('mousedown', e => {
+        e.preventDefault(); // prevent blur before we read the value
+        input.value = li.dataset.display;
+        hideSuggestions();
+        doSearch();
+      });
+    });
+  };
+
+  const moveSuggestion = delta => {
+    const list = document.getElementById('search-suggestions');
+    if (!list || list.classList.contains('hidden')) return;
+    const items = list.querySelectorAll('li');
+    if (!items.length) return;
+    items[_activeIdx]?.classList.remove('active');
+    _activeIdx = (_activeIdx + delta + items.length) % items.length;
+    const active = items[_activeIdx];
+    active.classList.add('active');
+    input.value = active.dataset.display;
+  };
+
+  // Debounced fetch as user types
+  input.addEventListener('input', () => {
+    clearTimeout(_suggestTimer);
+    const q = input.value.trim();
+    if (q.length < 3) { hideSuggestions(); return; }
+    _suggestTimer = setTimeout(async () => {
+      try {
+        // Bias results toward Santa Cruz with a loose viewbox
+        const url = `https://nominatim.openstreetmap.org/search?format=json` +
+          `&q=${encodeURIComponent(q)}&limit=5&countrycodes=us` +
+          `&viewbox=-122.15,36.92,-121.85,36.99&bounded=0`;
+        const res  = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+        const data = await res.json();
+        showSuggestions(data);
+      } catch { hideSuggestions(); }
+    }, 280);
+  });
+
+  // Keyboard: arrows to navigate, Enter to select, Escape to dismiss
+  input.addEventListener('keydown', e => {
+    const list = document.getElementById('search-suggestions');
+    const open = list && !list.classList.contains('hidden');
+    if (e.key === 'ArrowDown')  { e.preventDefault(); open ? moveSuggestion(1)  : null; return; }
+    if (e.key === 'ArrowUp')    { e.preventDefault(); open ? moveSuggestion(-1) : null; return; }
+    if (e.key === 'Escape')     { hideSuggestions(); return; }
+    if (e.key === 'Enter')      { hideSuggestions(); doSearch(); }
+  });
+
+  input.addEventListener('blur', () => setTimeout(hideSuggestions, 150));
+
+  // ── geocode + map action ────────────────────────────────────────────────────
   const doSearch = async () => {
     const q = input.value.trim();
     if (!q) return;
@@ -624,7 +700,6 @@ function initSearch() {
   };
 
   btn.addEventListener('click', doSearch);
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
   document.getElementById('search-dismiss')?.addEventListener('click', hideSearchCallout);
 }
 
