@@ -113,8 +113,8 @@
         </details>
       </div>
 
-      <!-- Recalculate -->
-      <div class="sidebar-section" id="recalc-section">
+      <!-- Recalculate — hidden until array selected -->
+      <div class="sidebar-section" id="recalc-section" style="display:none">
         <h3>Update Your Recommendation</h3>
         <div class="recalc-form">
           <div>
@@ -128,54 +128,6 @@
           </div>
           <button class="btn-recalc" id="btn-recalc">Recalculate</button>
           <div id="recalc-result"></div>
-        </div>
-        <p style="font-size:.72rem;color:var(--muted);margin-top:.5rem">
-          Select an array on the map first, then enter your last-cleaned date. Recalculation uses our live soiling model and 7-day weather forecast.
-        </p>
-      </div>
-
-      <!-- Energy & money calculator -->
-      <div class="sidebar-section" id="calculator-section">
-        <h3>Energy &amp; Money Calculator</h3>
-        <div class="calc-form">
-
-          <div class="calc-field">
-            <label for="calc-size">System size</label>
-            <div class="input-row">
-              <input type="number" id="calc-size" value="6" min="0.5" max="1000" step="0.5" />
-              <span class="unit">kW</span>
-            </div>
-          </div>
-
-          <div class="calc-field">
-            <label for="calc-rate">Your electricity rate</label>
-            <div class="input-row">
-              <input type="number" id="calc-rate" value="0.25" min="0.05" max="1.00" step="0.01" />
-              <span class="unit">$/kWh</span>
-            </div>
-          </div>
-
-          <div class="calc-field">
-            <label for="calc-sun">Peak sun hours/day</label>
-            <div class="input-row">
-              <input type="number" id="calc-sun" value="5.5" min="1" max="10" step="0.1" />
-              <span class="unit">h/day</span>
-            </div>
-            <span style="font-size:.72rem;color:var(--muted)">Santa Cruz avg: 5.5 h/day</span>
-          </div>
-
-          <div class="calc-field">
-            <label for="calc-soiling">Estimated soiling loss</label>
-            <div class="input-row">
-              <input type="number" id="calc-soiling" value="5.0" min="0.5" max="30" step="0.1" />
-              <span class="unit">% output loss</span>
-            </div>
-            <span style="font-size:.72rem;color:var(--muted)">Auto-filled from your array's risk score when you click it.</span>
-          </div>
-
-          <p class="calc-note">
-            Formula: annual loss = system_kw × sun_h × 365 × soiling%. Recovery assumes ~85% of theoretical max. <b>Note:</b> rain resets panels — this estimate assumes a dry season with no rainfall. For most CA homeowners, soiling loss is small and rain handles it (UC San Diego study).
-          </p>
         </div>
       </div>
 
@@ -193,14 +145,49 @@
         </div>
       </div>
 
-      <!-- Beta disclosure -->
-      <div class="sidebar-section" style="background:#fffbeb">
-        <h3>Beta</h3>
-        <p style="font-size:.75rem;color:var(--muted);line-height:1.5">
-          Detection: box mAP50 = 0.630 (target 0.70, retrain in progress).<br>
-          Risk model: spatial-CV AUC 0.728, holdout AUC 0.679 (target 0.70).<br>
-          Scores are suitable for planning and prioritization.
-        </p>
+      <!-- Calculator — collapsed by default -->
+      <details class="sidebar-section" id="calculator-section">
+        <summary class="calc-summary">Customize calculator inputs</summary>
+        <div class="calc-form">
+          <div class="calc-field">
+            <label for="calc-size">System size</label>
+            <div class="input-row">
+              <input type="number" id="calc-size" value="6" min="0.5" max="1000" step="0.5" />
+              <span class="unit">kW</span>
+            </div>
+          </div>
+          <div class="calc-field">
+            <label for="calc-rate">Your electricity rate</label>
+            <div class="input-row">
+              <input type="number" id="calc-rate" value="0.25" min="0.05" max="1.00" step="0.01" />
+              <span class="unit">$/kWh</span>
+            </div>
+          </div>
+          <div class="calc-field">
+            <label for="calc-sun">Peak sun hours/day</label>
+            <div class="input-row">
+              <input type="number" id="calc-sun" value="5.5" min="1" max="10" step="0.1" />
+              <span class="unit">h/day</span>
+            </div>
+            <span style="font-size:.72rem;color:var(--muted)">Santa Cruz avg: 5.5 h/day</span>
+          </div>
+          <div class="calc-field">
+            <label for="calc-soiling">Estimated soiling loss</label>
+            <div class="input-row">
+              <input type="number" id="calc-soiling" value="5.0" min="0.5" max="30" step="0.1" />
+              <span class="unit">% output loss</span>
+            </div>
+            <span style="font-size:.72rem;color:var(--muted)">Auto-filled when you click an array.</span>
+          </div>
+          <p class="calc-note">
+            Rain resets panels — estimates assume a dry season with no rainfall. For most CA homeowners, soiling loss is small and rain handles it (UC San Diego study).
+          </p>
+        </div>
+      </details>
+
+      <!-- Beta — one-liner footer -->
+      <div class="sidebar-footer">
+        Beta · Detection mAP50 0.630 · Risk AUC 0.728 · <a href="https://camerongordonn.github.io/SolarSoiled/" target="_blank">About</a>
       </div>
 
     </aside>

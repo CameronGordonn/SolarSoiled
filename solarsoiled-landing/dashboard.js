@@ -291,6 +291,7 @@ function selectArray(feat, layer) {
   populateDetail(feat);
   document.getElementById('array-detail').classList.add('visible');
   document.getElementById('detail-placeholder').style.display = 'none';
+  document.getElementById('recalc-section').style.display = '';
   document.getElementById('array-detail').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 

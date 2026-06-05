@@ -195,6 +195,35 @@ body {
 #recalc-result.visible { display: block; }
 #recalc-result strong { display: block; margin-bottom: .2rem; }
 
+/* ── calculator (collapsible) ── */
+.calc-summary {
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  margin-bottom: 0;
+  padding: .1rem 0 .6rem;
+  user-select: none;
+}
+.calc-summary::before { content: '▶'; font-size: .6rem; transition: transform .2s; }
+details[open] .calc-summary::before { transform: rotate(90deg); }
+.calc-summary::-webkit-details-marker { display: none; }
+
+/* ── sidebar footer ── */
+.sidebar-footer {
+  padding: .6rem 1.25rem;
+  font-size: .7rem;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+.sidebar-footer a { color: var(--teal); text-decoration: none; }
+.sidebar-footer a:hover { text-decoration: underline; }
+
 /* ── calculator ── */
 .calc-form { display: flex; flex-direction: column; gap: .7rem; }
 .calc-field { display: flex; flex-direction: column; gap: .25rem; }
