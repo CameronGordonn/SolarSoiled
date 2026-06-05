@@ -83,8 +83,15 @@ document.addEventListener('DOMContentLoaded', () => {
   initWeatherWidget();
   initSearch();
   document.getElementById('fit-btn')?.addEventListener('click', fitAllArrays);
-  // Tell Leaflet to remeasure its container after the browser has finished layout
-  setTimeout(() => _map.invalidateSize(), 0);
+  // Remeasure whenever the map container reaches its final rendered size.
+  // ResizeObserver fires after layout, which is more reliable than setTimeout.
+  const mapEl = document.getElementById('map');
+  if (mapEl && typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(() => _map.invalidateSize());
+    ro.observe(mapEl);
+  } else {
+    setTimeout(() => _map.invalidateSize(), 100);
+  }
 });
 
 // ── map init ──────────────────────────────────────────────────────────────────
