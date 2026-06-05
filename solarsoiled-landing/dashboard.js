@@ -121,7 +121,17 @@ function initMap() {
       L.DomEvent.on(btn, 'click', L.DomEvent.stopPropagation);
       L.DomEvent.on(btn, 'click', L.DomEvent.preventDefault);
       L.DomEvent.on(btn, 'click', () => {
-        if (_geojsonLayer) _map.fitBounds(_geojsonLayer.getBounds(), { padding: [20, 20] });
+        if (!_features.length) return;
+        let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+        _features.forEach(f => {
+          (f.geometry?.coordinates?.[0] ?? []).forEach(([lng, lat]) => {
+            if (lat < minLat) minLat = lat;
+            if (lat > maxLat) maxLat = lat;
+            if (lng < minLng) minLng = lng;
+            if (lng > maxLng) maxLng = lng;
+          });
+        });
+        if (isFinite(minLat)) _map.fitBounds([[minLat, minLng], [maxLat, maxLng]], { padding: [30, 30] });
       });
       return btn;
     },
@@ -132,27 +142,32 @@ function initMap() {
 // ── data loading ──────────────────────────────────────────────────────────────
 async function loadArrays() {
   setLoading(true);
+
+  // Load embedded data immediately so the map is never blocked on the backend.
+  if (window.FALLBACK_ARRAYS) {
+    _features = window.FALLBACK_ARRAYS.features || [];
+    renderArrays(window.FALLBACK_ARRAYS);
+    updateStats();
+    setLoading(false);
+  }
+
+  // Silently try the backend in the background — if it responds it may have
+  // fresher scores; if it's cold-starting on Render we just skip it.
   try {
     const headers = API_KEY ? { 'X-API-Key': API_KEY } : {};
-    const res = await fetch(ARRAYS_URL, { headers });
+    const res = await fetch(ARRAYS_URL, { headers, signal: AbortSignal.timeout(8000) });
     if (!res.ok) throw new Error(`${res.status}`);
     const fc = await res.json();
-    _features = fc.features || [];
-    renderArrays(fc);
-    updateStats();
-  } catch (err) {
-    console.warn('Could not load arrays from backend:', err.message);
-    if (window.FALLBACK_ARRAYS) {
-      _features = window.FALLBACK_ARRAYS.features || [];
-      renderArrays(window.FALLBACK_ARRAYS);
+    // Only re-render if the backend returned more arrays than the embedded file
+    if ((fc.features?.length ?? 0) > _features.length) {
+      _features = fc.features;
+      renderArrays(fc);
       updateStats();
-    } else {
-      document.getElementById('map-loading').innerHTML =
-        '<p style="color:#fca5a5;font-size:.85rem;text-align:center;padding:1rem">' +
-        'Map data unavailable. Backend may be starting up — try again in 30 seconds.</p>';
-      return;
     }
+  } catch {
+    // Backend unavailable or timed out — embedded data already shown, nothing to do
   }
+
   setLoading(false);
 }
 
@@ -334,6 +349,17 @@ function populateDetail(feat) {
       `<tr><td class="lbl">ML (XGBoost)</td><td class="val">${xgb}</td></tr>` +
       `<tr><td class="lbl">SOMOSclean</td><td class="val">${somos}</td></tr>` +
       `<tr><td class="lbl">Kimber 2007</td><td class="val">${kimber}</td></tr>`;
+  }
+
+  // Address (from pre-baked lookup; only shown when available)
+  const addrRow = document.getElementById('detail-address-row');
+  const addrEl  = document.getElementById('detail-address');
+  const addr = (typeof ADDRESS_LOOKUP !== 'undefined') ? ADDRESS_LOOKUP[String(id)] : null;
+  if (addr && addrRow && addrEl) {
+    addrEl.textContent = addr;
+    addrRow.style.display = '';
+  } else if (addrRow) {
+    addrRow.style.display = 'none';
   }
 
   document.getElementById('threshold-val').value =
