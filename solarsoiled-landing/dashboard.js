@@ -83,6 +83,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initWeatherWidget();
   initSearch();
   document.getElementById('fit-btn')?.addEventListener('click', fitAllArrays);
+  // Tell Leaflet to remeasure its container after the browser has finished layout
+  setTimeout(() => _map.invalidateSize(), 0);
 });
 
 // ── map init ──────────────────────────────────────────────────────────────────
