@@ -65,9 +65,8 @@ body {
 /* ── layout ── */
 .dashboard-layout {
   display: flex;
-  flex: 1;
   overflow: hidden;
-  height: calc(100vh - 52px);
+  height: 500px;
 }
 
 /* ── sidebar ── */
