@@ -82,6 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
   handleQrParam();
   initWeatherWidget();
   initSearch();
+  document.getElementById('fit-btn')?.addEventListener('click', fitAllArrays);
 });
 
 // ── map init ──────────────────────────────────────────────────────────────────
@@ -111,32 +112,6 @@ function initMap() {
   };
   legend.addTo(_map);
 
-  // Fit-all-arrays control (top-left, below zoom controls)
-  const FitControl = L.Control.extend({
-    options: { position: 'topleft' },
-    onAdd() {
-      const btn = L.DomUtil.create('button', 'leaflet-control-fit');
-      btn.textContent = 'Fit all arrays';
-      btn.title = 'Zoom to show all detected arrays';
-      L.DomEvent.on(btn, 'click', L.DomEvent.stopPropagation);
-      L.DomEvent.on(btn, 'click', L.DomEvent.preventDefault);
-      L.DomEvent.on(btn, 'click', () => {
-        if (!_features.length) return;
-        let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
-        _features.forEach(f => {
-          (f.geometry?.coordinates?.[0] ?? []).forEach(([lng, lat]) => {
-            if (lat < minLat) minLat = lat;
-            if (lat > maxLat) maxLat = lat;
-            if (lng < minLng) minLng = lng;
-            if (lng > maxLng) maxLng = lng;
-          });
-        });
-        if (isFinite(minLat)) _map.fitBounds([[minLat, minLng], [maxLat, maxLng]], { padding: [30, 30] });
-      });
-      return btn;
-    },
-  });
-  new FitControl().addTo(_map);
 }
 
 // ── data loading ──────────────────────────────────────────────────────────────
@@ -149,6 +124,7 @@ async function loadArrays() {
     renderArrays(window.FALLBACK_ARRAYS);
     updateStats();
     setLoading(false);
+    fitAllArrays();
   }
 
   // Silently try the backend in the background — if it responds it may have
@@ -752,4 +728,18 @@ function initModelTabs() {
 // ── utility ───────────────────────────────────────────────────────────────────
 function setLoading(on) {
   document.getElementById('map-loading')?.classList.toggle('hidden', !on);
+}
+
+function fitAllArrays() {
+  if (!_features.length) return;
+  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+  _features.forEach(f => {
+    (f.geometry?.coordinates?.[0] ?? []).forEach(([lng, lat]) => {
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+      if (lng < minLng) minLng = lng;
+      if (lng > maxLng) maxLng = lng;
+    });
+  });
+  if (isFinite(minLat)) _map.fitBounds([[minLat, minLng], [maxLat, maxLng]], { padding: [30, 30] });
 }
