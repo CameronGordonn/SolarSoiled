@@ -2,6 +2,8 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+html, body { height: 100%; }
+
 :root {
   --navy:    #0F2027;
   --teal:    #2C5364;
@@ -22,9 +24,10 @@ body {
   font-family: 'Inter', system-ui, sans-serif;
   background: var(--offwhite);
   color: var(--text);
-  min-height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 /* ── navbar ── */
