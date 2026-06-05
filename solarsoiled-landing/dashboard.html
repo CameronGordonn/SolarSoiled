@@ -44,6 +44,31 @@
         <p>Detected arrays scored for soiling risk. Click any array on the map to see your personalized report.</p>
       </div>
 
+      <!-- Impact card — hero numbers, always visible -->
+      <div id="impact-card">
+        <div class="impact-header">
+          <span id="impact-label">Your Array</span>
+          <span id="impact-array-tag"></span>
+        </div>
+        <div class="impact-row primary">
+          <span>Annual $ lost</span>
+          <span class="val" id="calc-annual-usd">—</span>
+        </div>
+        <div class="impact-row">
+          <span>Annual energy lost</span>
+          <span class="val" id="calc-annual-kwh">—</span>
+        </div>
+        <div class="impact-row">
+          <span>Monthly $ lost</span>
+          <span class="val" id="calc-monthly-usd">—</span>
+        </div>
+        <div class="impact-row">
+          <span>Est. $ recovered if cleaned</span>
+          <span class="val" id="calc-recovery">—</span>
+        </div>
+        <p id="impact-note" class="impact-note">Default 6 kW system · click an array to personalize</p>
+      </div>
+
       <!-- Area loss banner — always visible on load -->
       <div class="sidebar-section" id="area-loss-banner">
         <h3>Estimated Area Loss</h3>
@@ -148,24 +173,6 @@
             <span style="font-size:.72rem;color:var(--muted)">Auto-filled from your array's risk score when you click it.</span>
           </div>
 
-          <div class="calc-results">
-            <div class="result-row">
-              <span>Annual energy lost</span>
-              <span class="val" id="calc-annual-kwh">—</span>
-            </div>
-            <div class="result-row">
-              <span>Annual $ lost</span>
-              <span class="val" id="calc-annual-usd">—</span>
-            </div>
-            <div class="result-row">
-              <span>Monthly $ lost</span>
-              <span class="val" id="calc-monthly-usd">—</span>
-            </div>
-            <div class="result-row">
-              <span>Est. $ recovered if cleaned</span>
-              <span class="val" id="calc-recovery">—</span>
-            </div>
-          </div>
           <p class="calc-note">
             Formula: annual loss = system_kw × sun_h × 365 × soiling%. Recovery assumes ~85% of theoretical max. <b>Note:</b> rain resets panels — this estimate assumes a dry season with no rainfall. For most CA homeowners, soiling loss is small and rain handles it (UC San Diego study).
           </p>

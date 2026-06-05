@@ -349,6 +349,64 @@ body {
 }
 .qr-highlight path { animation: pulse-outline 1.5s ease-in-out 3; }
 
+/* ── impact card (hero numbers) ── */
+#impact-card {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--teal) 100%);
+  color: #fff;
+  padding: 1rem 1.25rem .85rem;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.impact-header {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  margin-bottom: .6rem;
+}
+.impact-header #impact-label {
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: rgba(255,255,255,.55);
+  font-weight: 600;
+}
+.impact-header #impact-array-tag {
+  font-size: .75rem;
+  color: var(--gold);
+  font-weight: 700;
+}
+.impact-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: .82rem;
+  padding: .22rem 0;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  color: rgba(255,255,255,.8);
+}
+.impact-row:last-of-type { border-bottom: none; }
+.impact-row.primary {
+  font-size: .9rem;
+  font-weight: 600;
+  color: #fff;
+  padding: .3rem 0 .35rem;
+  border-bottom: 1px solid rgba(255,255,255,.15);
+  margin-bottom: .1rem;
+}
+.impact-row .val {
+  font-weight: 700;
+  color: var(--gold);
+  font-size: inherit;
+}
+.impact-row.primary .val {
+  font-size: 1.35rem;
+  letter-spacing: -.02em;
+}
+.impact-note {
+  font-size: .7rem;
+  color: rgba(255,255,255,.4);
+  margin-top: .55rem;
+}
+
 /* ── area loss banner ── */
 #area-loss-banner { background: #fff; }
 

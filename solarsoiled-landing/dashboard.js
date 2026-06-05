@@ -344,6 +344,12 @@ function populateDetail(feat) {
   document.getElementById('calc-soiling').value = (score * 15).toFixed(1);
   calcUpdate();
 
+  // Update impact card header to name this array
+  const tag = document.getElementById('impact-array-tag');
+  if (tag) tag.textContent = `Array #${id}`;
+  const note = document.getElementById('impact-note');
+  if (note) note.textContent = 'Adjust inputs in the calculator below to personalize';
+
   // Update the always-visible banner to show this array's specific estimate
   renderArrayLossBanner(score, id);
 }
