@@ -5,10 +5,12 @@ End-to-end geospatial ML system for detecting rooftop solar arrays in public aer
 **Why it matters**: Solar panel soiling (dust, pollen, aerosols) reduces energy output by 1–10% in temperate climates and up to 25–30% in arid regions. Optimizing cleaning schedules across a county-scale install base requires knowing *which* arrays are highest-risk and *when* — from public data, without site visits. This system automates that from raw GeoTIFF to actionable cleaning recommendations.
 
 **Current metrics** — honest, methodology-explained in [Results](#results):
-- Stage 1: **SAHI F1 = 0.396** (conf=0.40, iou=0.50, NAIP Santa Cruz val). Active retrain in progress; beta gate ≥ 0.55.
-- Stage 2: **0.63 spatial-CV AUC / 0.66 temporal holdout AUC** (255 NREL stations, ~15 yr panel labels). GA gate ≥ 0.70.
+- Stage 1: **box mAP50 ≈ 0.65** (R2-cameron-20260509, NAIP Santa Cruz val). GA gate ≥ 0.70. SAHI runs as a supplementary small-panel second pass; train relabeling in progress.
+- Stage 2: **0.728 spatial-CV AUC / 0.679 holdout-2022 AUC** (`run_optionb`, nrel_merged: 891 annual rows, 146 stations, 15 states). **Spatial-CV gate cleared** (≥ 0.70); holdout gate 2.1 pts short.
 
 Every output carries `model_version`, `beta`, and `known_limitations` — quality metadata is in the output contract, not a footnote.
+
+> **What this repo is.** This is the **public surface** of SolarSoiled — the landing page, the homeowner dashboard, and a curated snapshot of the pipeline for reference. The full ML pipeline, training data, internal runbooks, and any homeowner/parcel data live in a **private** repo to protect IP and avoid exposing sensitive data. Nothing PII-bearing or secret ships here — see [`SYNC.md`](SYNC.md) for the pre-publish safety gate.
 
 ---
 
@@ -56,9 +58,9 @@ NAIP GeoTIFF (0.6m GSD)
 
 ## Key Engineering Choices
 
-**Production metric is SAHI F1, not model.val() mAP50.** Production inference uses SAHI (Slicing Aided Hyper Inference) with greedy NMS and IoS (intersection over smaller area). This is non-monotonic in confidence threshold — you cannot re-threshold a mAP50 sweep to estimate SAHI F1. `scripts/05d_sahi_threshold_sweep.py` runs the full SAHI inference loop per (conf, iou) combination. `model.val()` mAP50 is tracked only as a fast regression signal between sweeps.
+**Production metric is box mAP50 on the combined output.** Whole-tile inference runs first; SAHI (Slicing Aided Hyper Inference, greedy NMS + IoS) is a supplementary second pass that adds small-panel detections the whole-tile pass misses, and any SAHI detection overlapping an existing one is dropped. mAP50 on the *combined* output is the production bar; `model.val()` mAP50 is the headline regression signal, and `scripts/05d_sahi_threshold_sweep.py` calibrates the SAHI conf/iou operating point.
 
-**10km spatial GroupKFold to prevent geographic leakage.** Soiling rate is spatially autocorrelated — neighboring weather stations share climate signal. Random CV leaks across spatial neighbors and inflates AUC. We cluster all 255 NREL stations into 10km bins via KMeans and hold out whole bins. The gap between spatial-CV AUC (0.63) and random-CV AUC (~0.74) quantifies the leakage that naive splitting would mask.
+**10km spatial GroupKFold to prevent geographic leakage.** Soiling rate is spatially autocorrelated — neighboring weather stations share climate signal. Random CV leaks across spatial neighbors and inflates AUC. We cluster the NREL stations into 10km bins via KMeans and hold out whole bins, so the reported **spatial-CV AUC (0.728)** is a conservative generalization estimate; a naive random split scores higher purely by leaking across spatial neighbors.
 
 **Warm-start from SAHI-calibrated checkpoint, not COCO weights.** R0 retraining warm-starts from the existing SAHI baseline rather than COCO pretrained weights. The baseline learned to detect small arrays at 0.6m GSD — a prior that hand labels at source resolution can't reliably teach from scratch (small arrays are frequently under-labeled). Starting from COCO discards this prior; warm-starting preserves it while labels improve iteratively.
 
@@ -76,7 +78,7 @@ NAIP GeoTIFF (0.6m GSD)
 |---|---|---|---|
 | NAIP Santa Cruz | 249 tiles, ~360 labeled arrays, 0.6m GSD | USDA NAIP via Roboflow | Primary detection training/val/test domain |
 | Duke / Bradbury | 601 source images, ~19,400 array polygons, 0.3m GSD | Duke Energy / Figshare | Small-array diversity for joint curriculum training |
-| NREL soiling database | 255 stations, ~15 years panel-level soiling measurements | NREL public API | Stage 2 training labels |
+| NREL soiling database | 146 stations, 891 annual soiling rows across 15 states (`nrel_merged`) | NREL public API | Stage 2 training labels |
 | Open-Meteo ERA5 reanalysis | Historical weather per station (temp, humidity, wind, precip) | Open-Meteo OPeNDAP (1940–present) | Stage 2 weather features |
 | CAMS global atmosphere | PM2.5, PM10 per station | Copernicus / MERRA-2 OPeNDAP (1980–present) | Stage 2 air quality features |
 | ESA WorldCover 2021 | 10m land cover classification | ESA | Stage 2 land use features |
@@ -90,13 +92,13 @@ All external data fetches are disk-cached. Weather and air quality data streams 
 
 | Stage | Metric | Why this metric | Value |
 |---|---|---|---|
-| Stage 1 | **SAHI F1** | Production inference path; model.val() mAP50 consistently differs due to full-tile vs sliced inference | **0.396** at conf=0.40, iou=0.50 |
-| Stage 1 | model.val() mAP50 (regression signal only) | Fast check between SAHI sweeps — not used as the production bar | 0.563 (SAHI baseline checkpoint) |
-| Stage 2 | **Spatial-CV AUC** | 10km GroupKFold prevents geographic leakage; conservative generalization estimate | **0.63** |
-| Stage 2 | **Temporal holdout AUC** | Held-out 2022 data; tests for temporal distribution shift | **0.66** |
-| Stage 2 | (Random-CV AUC — shown for reference) | Illustrates the leakage magnitude of naive splits; not used in any production decision | ~0.74 |
+| Stage 1 | **box mAP50 (combined output)** | Production bar — whole-tile + supplementary SAHI second pass | **≈ 0.65** (R2-cameron-20260509, current val labels) |
+| Stage 1 | SAHI second pass | Supplementary small-panel recall; calibrated via the conf/iou sweep | conf=0.40, iou=0.50 operating point |
+| Stage 2 | **Spatial-CV AUC** | 10km GroupKFold prevents geographic leakage; conservative generalization estimate | **0.728** (gate cleared) |
+| Stage 2 | **Temporal holdout-2022 AUC** | Held-out 2022 data; tests for temporal distribution shift | **0.679** |
+| Stage 2 | (Random-CV AUC — for reference) | Illustrates leakage magnitude of naive splits; not used in any production decision | higher than spatial-CV |
 
-**Gates**: Stage 1 beta ≥ 0.55 SAHI F1, GA ≥ 0.65. Stage 2 GA: both AUC ≥ 0.70.
+**Gates**: Stage 1 GA ≥ 0.70 mAP50. Stage 2 GA: both AUC ≥ 0.70 (spatial-CV cleared; holdout 2.1 pts short).
 
 ---
 
