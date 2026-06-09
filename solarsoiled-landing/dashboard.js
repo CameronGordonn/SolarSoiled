@@ -337,16 +337,10 @@ function populateDetail(feat) {
       `<tr><td class="lbl">Kimber 2007</td><td class="val">${kimber}</td></tr>`;
   }
 
-  // Address (from pre-baked lookup; only shown when available)
+  // Street addresses are intentionally not exposed in the public dashboard (PII).
+  // Arrays are identified by ID only; the address row stays hidden.
   const addrRow = document.getElementById('detail-address-row');
-  const addrEl  = document.getElementById('detail-address');
-  const addr = (typeof ADDRESS_LOOKUP !== 'undefined') ? ADDRESS_LOOKUP[String(id)] : null;
-  if (addr && addrRow && addrEl) {
-    addrEl.textContent = addr;
-    addrRow.style.display = '';
-  } else if (addrRow) {
-    addrRow.style.display = 'none';
-  }
+  if (addrRow) addrRow.style.display = 'none';
 
   document.getElementById('threshold-val').value =
     document.getElementById('threshold-display').textContent = '0.60';
