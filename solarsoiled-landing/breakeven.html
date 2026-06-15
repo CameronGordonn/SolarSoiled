@@ -573,6 +573,16 @@
   }
 
   recalc();
+
+  // Report content height to a parent frame so it can size the iframe responsively
+  // (no clipping on mobile, no dead space on desktop).
+  if (window.parent !== window) {
+    const postHeight = () => window.parent.postMessage(
+      { type: 'solarsoiled:height', height: document.documentElement.scrollHeight }, '*');
+    if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+    window.addEventListener('load', postHeight);
+    postHeight();
+  }
 </script>
 </body>
 </html>
