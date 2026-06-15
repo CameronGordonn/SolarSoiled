@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SolarSoiled · When does cleaning pay off?</title>
+<meta name="description" content="See exactly when washing your solar panels starts saving you money — a live breakeven model with seasonal and persistent soiling.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    /* SolarSoiled brand */
+    --navy:    #0F2027;
+    --mid:     #203A43;
+    --teal:    #2C5364;
+    --gold:    #F7B731;
+    --gold-dk: #D9A020;
+
+    /* dark-theme tokens */
+    --bg-0:    #0A171D;
+    --surface: rgba(255,255,255,.045);
+    --surface-2: rgba(255,255,255,.07);
+    --border:  rgba(255,255,255,.10);
+    --border-strong: rgba(247,183,49,.45);
+
+    --text:    #F4F6F5;
+    --muted:   rgba(244,246,245,.66);
+    --hint:    rgba(244,246,245,.40);
+
+    --teal-br: #2DD4BF;   /* bright teal for dark bg */
+    --green:   #34D399;
+    --violet:  #A78BFA;
+    --red:     #F87171;
+
+    --radius:    16px;
+    --radius-sm: 10px;
+    --shadow:    0 10px 40px rgba(0,0,0,.45);
+    --glow-gold: 0 0 0 4px rgba(247,183,49,.15);
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(44,83,100,.55), transparent 60%),
+      radial-gradient(900px 500px at -10% 10%, rgba(247,183,49,.08), transparent 55%),
+      linear-gradient(160deg, #0A171D 0%, #0F2027 45%, #16303A 100%);
+    background-attachment: fixed;
+    padding: 40px 22px 72px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, .num { font-family: 'Space Grotesk', sans-serif; line-height: 1.15; }
+
+  .page { max-width: 820px; margin: 0 auto; }
+
+  /* ── hero ─────────────────────────────────────────────── */
+  .hero { margin-bottom: 26px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 600;
+    letter-spacing: .18em; text-transform: uppercase; color: var(--gold);
+    margin-bottom: 14px;
+  }
+  .eyebrow::before { content:""; width: 22px; height: 2px; background: var(--gold); border-radius: 2px; }
+  h1 { font-size: clamp(26px, 5vw, 38px); font-weight: 700; letter-spacing: -.02em; margin-bottom: 12px; }
+  h1 .accent { color: var(--gold); }
+  .subtitle { font-size: 15.5px; color: var(--muted); max-width: 62ch; }
+
+  /* impact band */
+  .impact {
+    display: grid; grid-template-columns: 1.3fr 1fr; gap: 18px;
+    margin: 24px 0 8px;
+  }
+  .impact-hero {
+    background: linear-gradient(135deg, rgba(247,183,49,.16), rgba(247,183,49,.05));
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius); padding: 22px 24px;
+    position: relative; overflow: hidden;
+  }
+  .impact-hero::after {
+    content:""; position: absolute; right: -40px; top: -40px;
+    width: 160px; height: 160px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(247,183,49,.22), transparent 70%);
+  }
+  .impact-kicker { font-size: 12px; font-weight: 600; letter-spacing: .04em; color: var(--gold); text-transform: uppercase; margin-bottom: 8px; }
+  .impact-num { font-size: clamp(34px, 7vw, 48px); font-weight: 700; letter-spacing: -.02em; }
+  .impact-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  .verdict {
+    border-radius: var(--radius); padding: 22px 24px;
+    border: 1px solid var(--border); background: var(--surface);
+    display: flex; flex-direction: column; justify-content: center;
+    transition: all .3s ease;
+  }
+  .verdict.go    { background: linear-gradient(135deg, rgba(52,211,153,.15), rgba(52,211,153,.04)); border-color: rgba(52,211,153,.45); }
+  .verdict.wait  { background: var(--surface); }
+  .verdict-tag   { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--hint); margin-bottom: 6px; }
+  .verdict.go .verdict-tag { color: var(--green); }
+  .verdict-line  { font-size: 15px; font-weight: 500; line-height: 1.45; }
+
+  /* ── cards / controls ─────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 24px; margin-bottom: 14px;
+    backdrop-filter: blur(6px);
+  }
+  .card-label {
+    font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 600;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--hint); margin-bottom: 18px;
+  }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+  .ctrl label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  .ctrl label strong { color: var(--text); font-weight: 600; font-family: 'Space Grotesk', sans-serif; }
+
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 5px; border-radius: 3px; outline: none; cursor: pointer;
+    background: rgba(255,255,255,.14);
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--gold); border: 3px solid var(--navy);
+    box-shadow: var(--glow-gold); cursor: pointer; transition: box-shadow .15s, transform .1s;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.08); box-shadow: 0 0 0 6px rgba(247,183,49,.2); }
+  input[type="range"]::-moz-range-thumb {
+    width: 20px; height: 20px; border-radius: 50%; background: var(--gold);
+    border: 3px solid var(--navy); box-shadow: var(--glow-gold); cursor: pointer;
+  }
+  .range-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--hint); margin-top: 6px; }
+
+  .toggle-group { display: flex; gap: 6px; background: rgba(0,0,0,.18); padding: 4px; border-radius: var(--radius-sm); }
+  .toggle-btn {
+    flex: 1; padding: 9px 10px; border-radius: 7px; border: none;
+    background: transparent; color: var(--muted);
+    font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 500;
+    cursor: pointer; transition: all .15s;
+  }
+  .toggle-btn.active { background: var(--gold); color: var(--navy); font-weight: 600; box-shadow: 0 2px 10px rgba(247,183,49,.3); }
+  .toggle-btn:hover:not(.active) { color: var(--text); }
+  .toggle-desc { font-size: 11.5px; color: var(--hint); margin-top: 8px; line-height: 1.5; }
+
+  .badge { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 2px 9px; border-radius: 20px; margin-left: 6px; vertical-align: middle; }
+  .badge-seasonal  { background: rgba(247,183,49,.18); color: var(--gold); }
+  .badge-persist   { background: rgba(45,212,191,.16); color: var(--teal-br); }
+
+  .persist-row { margin-top: 18px; padding-top: 18px; border-top: 1px dashed var(--border); }
+  .persist-row.hidden { display: none; }
+
+  input[type="number"] {
+    width: 150px; padding: 11px 14px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-size: 15px; font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+    color: var(--text); background: rgba(0,0,0,.2); outline: none; transition: border-color .15s, box-shadow .15s;
+  }
+  input[type="number"]:focus { border-color: var(--gold); box-shadow: var(--glow-gold); }
+  input[type="number"]::placeholder { color: var(--hint); font-weight: 400; }
+
+  /* ── chart ────────────────────────────────────────────── */
+  .chart-wrap { position: relative; width: 100%; height: 320px; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 16px; font-size: 12px; color: var(--muted); }
+  .legend-item { display: flex; align-items: center; gap: 7px; }
+  .legend-line   { width: 22px; height: 3px; display: inline-block; border-radius: 2px; }
+  .legend-dashed { width: 22px; height: 0; border-top: 2px dashed; display: inline-block; }
+
+  /* ── stats ────────────────────────────────────────────── */
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px 18px; }
+  .stat-label { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--hint); margin-bottom: 8px; }
+  .stat-value { font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-bottom: 4px; line-height: 1; }
+  .stat-value.gold { color: var(--gold); }
+  .stat-sub { font-size: 11px; color: var(--hint); }
+
+  /* ── explainer ────────────────────────────────────────── */
+  .explainer { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 26px; margin-bottom: 14px; }
+  .explainer h3 { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: var(--text); }
+  .explainer h3.mt { margin-top: 4px; }
+  .explainer p { font-size: 13.5px; color: var(--muted); line-height: 1.7; margin-bottom: 10px; }
+  .explainer p:last-child { margin-bottom: 0; }
+  .explainer strong { color: var(--text); font-weight: 600; }
+  .eq {
+    background: rgba(0,0,0,.28); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 13px 16px; margin: 12px 0; font-family: 'Space Grotesk', 'Courier New', monospace;
+    font-size: 13px; color: var(--gold); overflow-x: auto;
+  }
+  .rule { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+  .footnote { font-size: 11px; color: var(--hint); line-height: 1.75; padding-top: 16px; border-top: 1px solid var(--border); }
+
+  @media (max-width: 600px) {
+    .grid-2, .impact { grid-template-columns: 1fr; }
+    .grid-3 { grid-template-columns: 1fr 1fr; }
+    .grid-3 .stat:last-child { grid-column: span 2; }
+    body { padding: 28px 16px 48px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HERO -->
+  <header class="hero">
+    <p class="eyebrow">SolarSoiled · Tools</p>
+    <h1>Your panels are quietly <span class="accent">losing money</span>.<br>Here's exactly when cleaning pays off.</h1>
+    <p class="subtitle">Soiling builds up every dry day, dragging down your output. This live model shows when the energy you're losing finally outweighs the cost of a wash — including the persistent grime that rain never removes.</p>
+
+    <div class="impact">
+      <div class="impact-hero">
+        <p class="impact-kicker">Recoverable today</p>
+        <p class="impact-num num gold" id="impact-num">$0</p>
+        <p class="impact-sub" id="impact-sub">Set your system below to see your number.</p>
+      </div>
+      <div class="verdict wait" id="verdict">
+        <p class="verdict-tag" id="verdict-tag">Verdict</p>
+        <p class="verdict-line" id="verdict-line">Enter days since rain to get a clean / wait call.</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- SYSTEM -->
+  <div class="card">
+    <p class="card-label">Your system</p>
+    <div class="grid-2">
+      <div class="ctrl">
+        <label>System size · <strong id="kw-out">8 kW</strong></label>
+        <input type="range" min="2" max="30" step="1" value="8" id="kw"
+          oninput="document.getElementById('kw-out').textContent=this.value+' kW';recalc()">
+        <div class="range-labels"><span>2 kW</span><span>30 kW</span></div>
+      </div>
+      <div class="ctrl">
+        <label>Electricity rate · <strong id="rate-out">$0.25/kWh</strong></label>
+        <input type="range" min="0.10" max="0.65" step="0.01" value="0.25" id="rate"
+          oninput="document.getElementById('rate-out').textContent='$'+parseFloat(this.value).toFixed(2)+'/kWh';recalc()">
+        <div class="range-labels"><span>$0.10</span><span>$0.65</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SOILING & CLEANING -->
+  <div class="card">
+    <p class="card-label">Soiling &amp; cleaning</p>
+    <div class="grid-2">
+      <div>
+        <div class="ctrl">
+          <label>Daily soiling rate · <strong id="hrate-out">0.10%/day</strong><span class="badge badge-seasonal">seasonal</span></label>
+          <input type="range" min="0.02" max="0.20" step="0.01" value="0.10" id="hrate"
+            oninput="document.getElementById('hrate-out').textContent=parseFloat(this.value).toFixed(2)+'%/day';recalc()">
+          <div class="range-labels"><span>0.02% avg</span><span>0.20% heavy</span></div>
+        </div>
+
+        <div style="margin-top:18px;">
+          <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">System age</p>
+          <div class="toggle-group">
+            <button class="toggle-btn active" id="btn-y1" onclick="setYear(1)">Year 1</button>
+            <button class="toggle-btn" id="btn-y2" onclick="setYear(2)">Year 2+</button>
+          </div>
+        </div>
+
+        <div class="persist-row hidden" id="persist-row">
+          <div class="ctrl">
+            <label>Year-over-year loss · <strong id="ploss-out">3.0%</strong><span class="badge badge-persist">persistent</span></label>
+            <input type="range" min="0" max="15" step="0.5" value="3.0" id="ploss"
+              oninput="document.getElementById('ploss-out').textContent=parseFloat(this.value).toFixed(1)+'%';recalc()">
+            <div class="range-labels"><span>0%</span><span>15%</span></div>
+          </div>
+          <p class="toggle-desc">Pollen films, cemented dust, or biofilm that rain doesn't remove — detected by comparing the same month year-over-year.</p>
+        </div>
+      </div>
+
+      <div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Cleaning method</p>
+        <div class="toggle-group">
+          <button class="toggle-btn active" id="btn-lp" onclick="setClean('lightpro')">Light-pro</button>
+          <button class="toggle-btn" id="btn-pro" onclick="setClean('professional')">Professional</button>
+        </div>
+        <p class="toggle-desc" id="clean-desc">~$90 · 70% recovery · water-fed pole, no roof access</p>
+
+        <div style="margin-top:22px;" class="ctrl">
+          <label>Cleaning cost · <strong id="cost-out">$90</strong></label>
+          <input type="range" min="50" max="500" step="10" value="90" id="cost"
+            oninput="document.getElementById('cost-out').textContent='$'+this.value;recalc()">
+          <div class="range-labels"><span>$50</span><span>$500</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHERE ARE YOU -->
+  <div class="card">
+    <p class="card-label">Where are you now?</p>
+    <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
+      <div>
+        <label style="display:block;font-size:13px;color:var(--muted);margin-bottom:10px;">Days since last meaningful rain</label>
+        <input type="number" id="days-since" min="0" max="365" placeholder="e.g. 60" oninput="recalc()">
+      </div>
+      <p style="flex:1;min-width:220px;font-size:13px;color:var(--muted);line-height:1.5;" id="days-help">
+        We pull this automatically from local weather when you scan your address — enter it manually to preview.
+      </p>
+    </div>
+  </div>
+
+  <!-- CHART -->
+  <div class="card">
+    <p class="card-label">Breakeven curve</p>
+    <div class="chart-wrap">
+      <canvas id="bchart" role="img"
+        aria-label="Line chart of accumulated recoverable value in dollars over dry days. The curve rises as soiling builds; breakeven is where it crosses the cleaning-cost line.">
+        Accumulated recoverable value over dry days; the intersection with cleaning cost marks when washing pays off.
+      </canvas>
+    </div>
+    <div class="legend">
+      <span class="legend-item"><span class="legend-line" style="background:#F7B731;"></span>Seasonal loss (this year)</span>
+      <span class="legend-item" id="legend-persist" style="display:none;"><span class="legend-dashed" style="border-color:#2DD4BF;"></span>Persistent offset</span>
+      <span class="legend-item" id="legend-combined" style="display:none;"><span class="legend-line" style="background:#A78BFA;"></span>Combined</span>
+      <span class="legend-item"><span class="legend-dashed" style="border-color:#F87171;"></span>Cleaning cost</span>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="grid-3" style="margin-bottom:14px;">
+    <div class="stat">
+      <p class="stat-label">Breakeven</p>
+      <p class="stat-value gold num" id="stat-be">—</p>
+      <p class="stat-sub">dry days until worth cleaning</p>
+    </div>
+    <div class="stat">
+      <p class="stat-label" id="stat2-label">Daily output</p>
+      <p class="stat-value num" id="stat-mid">—</p>
+      <p class="stat-sub" id="stat2-sub">kWh/day baseline</p>
+    </div>
+    <div class="stat">
+      <p class="stat-label">Cleaning cost</p>
+      <p class="stat-value num" id="stat-cost2">—</p>
+      <p class="stat-sub" id="stat3-sub">— recovery</p>
+    </div>
+  </div>
+
+  <!-- EXPLAINER -->
+  <div class="explainer">
+    <h3>How the two components work</h3>
+    <p><strong>Seasonal (heavy) soiling</strong> builds up through the dry season — the rising curve. More dust each day means the loss accelerates; winter rain resets it to zero. This is the classic question: how far into the dry season before cleaning pays?</p>
+    <p id="persist-explainer" style="display:none;"><strong>Persistent soiling</strong> is the part rain doesn't wash away — pollen films, cemented deposits, biological growth that carry over year to year. We catch it by comparing each month to the same month last year (adjusted for ~0.5%/yr normal panel degradation). Because it's always present, it lifts the whole curve so breakeven arrives sooner — sometimes on day one.</p>
+    <p>The flagging rule: <span id="flag-rule">in Year 1, flag when seasonal loss alone exceeds cleaning cost.</span></p>
+
+    <hr class="rule">
+    <h3 class="mt">The math</h3>
+    <p><strong>Seasonal loss (the curve shape).</strong> On day N of a dry spell the panel is N × soiling_rate dirtier than on day 0, so each successive day loses a bit more. Summing day 1…N gives a triangular sum:</p>
+    <div class="eq">heavy_loss($) = daily_kWh × soil_rate × N(N+1)/2 × $/kWh</div>
+    <p>The N(N+1)/2 term is what bends the curve. At day 60 it's 1,830; at day 120 it's 7,260 — <strong>4× larger, not 2×</strong>. Waiting twice as long quadruples the loss.</p>
+
+    <p style="margin-top:14px;"><strong>Persistent offset (the flat floor).</strong> This doesn't grow with dry days — it's already being lost year-round from carryover residue. We derive it by comparing this month's top-quartile 4-hour production block to the same month last year, then projecting that deficit across the full year:</p>
+    <div class="eq">R_persist($) = year_over_year_loss% × (kW × 1,750 kWh × $0.375/kWh)</div>
+    <p>For a 3% persistent loss on an 8 kW system that's roughly <strong>$157</strong> — fixed, no matter how many dry days have passed.</p>
+
+    <p style="margin-top:14px;"><strong>Combined breakeven.</strong> In Year 2+, total recoverable value is the sum of both, and cleaning pays once that total × recovery% clears the cost:</p>
+    <div class="eq">(heavy_loss(N) + R_persist) × recovery% ≥ cleaning_cost</div>
+    <p>Solving for the breakeven day:</p>
+    <div class="eq">N ≈ √( (cleaning_cost / recovery% − R_persist) × 2 / (daily_kWh × soil_rate × rate) )</div>
+    <p>If the term inside the root is already negative, the persistent loss alone covers the cleaning cost and breakeven is <strong>day zero</strong> — the case this model cares most about: arrays worth flagging at the start of every season.</p>
+
+    <p style="margin-top:14px;"><strong>Two-consecutive-months rule.</strong> We evaluate at the end of May, June, and July. In Year 2+, the combined value must clear the cost in <strong>two consecutive windows</strong> before flagging — one weak month is weather noise; two in a row is a real pattern. The faint vertical lines on the chart mark those windows.</p>
+  </div>
+
+  <p class="footnote">
+    Seasonal curve uses Kimber (2007) linear accumulation. Persistent offset uses an Enphase-style flagging model: year-over-year loss vs. the same month prior year, adjusted for 0.5%/yr panel degradation, valued at a $0.375/kWh blended annual rate. Soiling rates: ~0.05%/day average, ~0.10%/day heavy (top quartile) per Mejía &amp; Kleissl (2013). Recovery percentages from UCSD 2013 field-cleaning data. Assumes 5.5 peak-sun-hours/day. Estimates for guidance, not a guarantee.
+  </p>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+<script>
+  let systemYear = 1, cleaning = 'lightpro', chart = null;
+
+  const CLEAN = {
+    lightpro:     { cost: 90,  recovery: 0.70, desc: '~$90 · 70% recovery · water-fed pole, no roof access' },
+    professional: { cost: 175, recovery: 0.90, desc: '~$175 · 90% recovery · roof-access scrub' }
+  };
+  // Per-kW annual production value (14,000 kWh @ $0.375 blended for 8 kW)
+  const V_ANNUAL_PER_KW = (14000 * 0.375) / 8;  // $656.25/kW
+
+  function setYear(y) {
+    systemYear = y;
+    document.getElementById('btn-y1').className = 'toggle-btn' + (y === 1 ? ' active' : '');
+    document.getElementById('btn-y2').className = 'toggle-btn' + (y === 2 ? ' active' : '');
+    document.getElementById('persist-row').classList.toggle('hidden', y === 1);
+    document.getElementById('legend-persist').style.display    = y === 2 ? '' : 'none';
+    document.getElementById('legend-combined').style.display   = y === 2 ? '' : 'none';
+    document.getElementById('persist-explainer').style.display = y === 2 ? '' : 'none';
+    document.getElementById('flag-rule').textContent = y === 1
+      ? 'in Year 1, flag when seasonal loss alone exceeds cleaning cost.'
+      : 'in Year 2+, flag when seasonal + persistent combined exceeds cleaning cost for 2 consecutive months.';
+    document.getElementById('stat2-label').textContent = y === 2 ? 'Persistent offset' : 'Daily output';
+    document.getElementById('stat2-sub').textContent   = y === 2 ? 'year-over-year carryover loss' : 'kWh/day baseline';
+    recalc();
+  }
+
+  function setClean(c) {
+    cleaning = c;
+    document.getElementById('btn-lp').className  = 'toggle-btn' + (c === 'lightpro' ? ' active' : '');
+    document.getElementById('btn-pro').className = 'toggle-btn' + (c === 'professional' ? ' active' : '');
+    document.getElementById('clean-desc').textContent = CLEAN[c].desc;
+    document.getElementById('cost').value = CLEAN[c].cost;
+    document.getElementById('cost-out').textContent = '$' + CLEAN[c].cost;
+    recalc();
+  }
+
+  const fmt = n => '$' + Math.round(n).toLocaleString();
+
+  // smooth count-up for the hero number
+  let impactRAF = null, impactCur = 0;
+  function animateImpact(target) {
+    cancelAnimationFrame(impactRAF);
+    const start = impactCur, t0 = performance.now(), dur = 450;
+    const step = now => {
+      const p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+      impactCur = start + (target - start) * e;
+      document.getElementById('impact-num').textContent = fmt(impactCur);
+      if (p < 1) impactRAF = requestAnimationFrame(step);
+    };
+    impactRAF = requestAnimationFrame(step);
+  }
+
+  function recalc() {
+    const kw       = parseFloat(document.getElementById('kw').value)    || 8;
+    const rate     = parseFloat(document.getElementById('rate').value)  || 0.25;
+    const hratePct = parseFloat(document.getElementById('hrate').value) || 0.10;
+    const plossPct = parseFloat(document.getElementById('ploss').value) || 3.0;
+    const cost     = parseFloat(document.getElementById('cost').value)  || 90;
+    const daysStr  = document.getElementById('days-since').value;
+    const daysSince = daysStr !== '' ? parseInt(daysStr) : null;
+
+    const { recovery } = CLEAN[cleaning];
+    const dailyKWh = kw * 5.5;
+    const soilRate = hratePct / 100;
+    const R_persist = systemYear >= 2 ? (plossPct / 100) * kw * V_ANNUAL_PER_KW : 0;
+
+    let breakevenDay = null;
+    const heavyArr = [], combinedArr = [];
+    if (R_persist * recovery >= cost) breakevenDay = 0;
+    for (let d = 0; d <= 365; d++) {
+      const heavy = dailyKWh * soilRate * (d * (d + 1) / 2) * rate;
+      const combined = heavy + R_persist;
+      if (breakevenDay === null && combined * recovery >= cost) breakevenDay = d;
+      heavyArr.push(+(heavy * recovery).toFixed(2));
+      combinedArr.push(+(combined * recovery).toFixed(2));
+    }
+
+    const showMax = breakevenDay !== null ? Math.min(365, Math.ceil(Math.max(breakevenDay * 1.7, 60))) : 240;
+    const labels = Array.from({ length: showMax + 1 }, (_, i) => i);
+    const heavyData = heavyArr.slice(0, showMax + 1);
+    const combData  = combinedArr.slice(0, showMax + 1);
+    const persistData = labels.map(() => +(R_persist * recovery).toFixed(2));
+
+    const textColor = 'rgba(244,246,245,.55)', gridColor = 'rgba(255,255,255,.06)';
+    const monthMarkers = [31, 61, 92].filter(d => d <= showMax);
+    const monthLabels = { 31: 'May', 61: 'June', 92: 'July' };
+
+    const annotations = {
+      costLine: {
+        type: 'line', yMin: cost, yMax: cost,
+        borderColor: '#F87171', borderWidth: 1.5, borderDash: [5, 4],
+        label: { content: 'Cleaning cost ' + fmt(cost), display: true, position: 'end',
+          color: '#F87171', font: { size: 11, family: 'Inter' }, backgroundColor: 'transparent', padding: 0 } }
+    };
+    if (breakevenDay !== null && breakevenDay <= showMax) {
+      annotations.beLine = {
+        type: 'line', xMin: breakevenDay, xMax: breakevenDay,
+        borderColor: '#34D399', borderWidth: 1.5, borderDash: [5, 4],
+        label: { content: 'Day ' + breakevenDay + ' → clean', display: true, position: 'start',
+          color: '#34D399', font: { size: 11, family: 'Inter' }, backgroundColor: 'transparent', padding: 0, yAdjust: -8 } };
+    }
+    monthMarkers.forEach((d, i) => {
+      annotations['month' + i] = {
+        type: 'line', xMin: d, xMax: d, borderColor: 'rgba(255,255,255,.10)', borderWidth: 1, borderDash: [3, 3],
+        label: { content: monthLabels[d], display: true, position: 'end',
+          color: 'rgba(255,255,255,.32)', font: { size: 10, family: 'Inter' }, backgroundColor: 'transparent', padding: 0, yAdjust: 4 } };
+    });
+    if (daysSince !== null && !isNaN(daysSince) && daysSince >= 0 && daysSince <= showMax) {
+      annotations.todayLine = {
+        type: 'line', xMin: daysSince, xMax: daysSince, borderColor: '#F7B731', borderWidth: 2,
+        label: { content: 'You', display: true, position: 'end', color: '#F7B731',
+          font: { size: 11, family: 'Space Grotesk', weight: '600' }, backgroundColor: 'transparent', padding: 0, yAdjust: 8 } };
+    }
+
+    // gradient fill helper
+    const mkFill = (ctx, hex) => {
+      const { ctx: c, chartArea } = ctx.chart;
+      if (!chartArea) return 'transparent';
+      const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+      g.addColorStop(0, hex + '55'); g.addColorStop(1, hex + '00');
+      return g;
+    };
+
+    const datasets = [];
+    if (systemYear >= 2 && R_persist > 0) {
+      datasets.push({ label: 'Persistent offset', data: persistData, borderColor: '#2DD4BF',
+        borderWidth: 1.5, borderDash: [5, 4], pointRadius: 0, tension: 0, fill: false, order: 3 });
+      datasets.push({ label: 'Combined', data: combData, borderColor: '#A78BFA',
+        borderWidth: 2.5, pointRadius: 0, tension: 0.25, order: 1, fill: true,
+        backgroundColor: ctx => mkFill(ctx, '#A78BFA') });
+    }
+    datasets.push({ label: 'Seasonal loss', data: heavyData, borderColor: '#F7B731',
+      borderWidth: systemYear >= 2 ? 1.5 : 2.75, borderDash: systemYear >= 2 ? [5, 4] : [],
+      pointRadius: 0, tension: 0.25, order: 2, fill: systemYear < 2,
+      backgroundColor: ctx => mkFill(ctx, '#F7B731') });
+
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById('bchart'), {
+      type: 'line', data: { labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: { display: false }, annotation: { annotations },
+          tooltip: { backgroundColor: 'rgba(15,32,39,.96)', borderColor: 'rgba(247,183,49,.4)', borderWidth: 1,
+            titleColor: '#F7B731', bodyColor: '#F4F6F5', padding: 11, cornerRadius: 8,
+            titleFont: { family: 'Space Grotesk' },
+            callbacks: { title: i => 'Day ' + i[0].label, label: i => i.dataset.label + ': ' + fmt(i.raw) } }
+        },
+        scales: {
+          x: { title: { display: true, text: 'Dry days since last rain', color: textColor, font: { size: 12, family: 'Inter' } },
+               ticks: { color: textColor, maxTicksLimit: 8, autoSkip: true }, grid: { color: gridColor } },
+          y: { title: { display: true, text: 'Recoverable value ($)', color: textColor, font: { size: 12, family: 'Inter' } },
+               ticks: { color: textColor, callback: v => '$' + Math.round(v) }, grid: { color: gridColor } }
+        }
+      }
+    });
+
+    // stats
+    document.getElementById('stat-be').textContent = breakevenDay !== null ? 'Day ' + breakevenDay : '>365';
+    document.getElementById('stat-mid').textContent = systemYear >= 2 ? fmt(R_persist) : dailyKWh.toFixed(1) + ' kWh';
+    document.getElementById('stat-cost2').textContent = fmt(cost);
+    document.getElementById('stat3-sub').textContent  = Math.round(recovery * 100) + '% recovery';
+
+    // impact + verdict
+    const activeArr = systemYear >= 2 ? combinedArr : heavyArr;
+    const verdictEl = document.getElementById('verdict');
+    const tagEl = document.getElementById('verdict-tag'), lineEl = document.getElementById('verdict-line');
+    const subEl = document.getElementById('impact-sub');
+
+    if (daysSince !== null && !isNaN(daysSince) && daysSince >= 0) {
+      const curRecoverable = activeArr[Math.min(daysSince, 365)];
+      animateImpact(curRecoverable);
+      subEl.textContent = 'Recoverable value built up by day ' + daysSince + '.';
+      if (breakevenDay === null) {
+        verdictEl.className = 'verdict wait'; tagEl.textContent = 'Hold off';
+        lineEl.textContent = 'At these settings, cleaning doesn\'t pay within a year — rain will likely beat you to it.';
+      } else if (daysSince >= breakevenDay) {
+        verdictEl.className = 'verdict go'; tagEl.textContent = 'Clean now';
+        lineEl.innerHTML = '~<strong>' + fmt(curRecoverable - cost) + '</strong> net benefit if you wash today.';
+      } else {
+        verdictEl.className = 'verdict wait'; tagEl.textContent = 'Not yet';
+        lineEl.innerHTML = 'Breakeven in ~<strong>' + (breakevenDay - daysSince) + '</strong> more dry days. Hold off.';
+      }
+    } else {
+      // no day entered — show the season's potential at the breakeven point
+      const potential = breakevenDay !== null ? activeArr[Math.min(showMax, 365)] : activeArr[240] || 0;
+      animateImpact(Math.max(potential, R_persist * recovery));
+      subEl.textContent = breakevenDay !== null
+        ? 'Recoverable by day ' + showMax + ' of the dry season.'
+        : 'Estimated recoverable value this dry season.';
+      verdictEl.className = 'verdict wait'; tagEl.textContent = 'Verdict';
+      lineEl.textContent = 'Enter days since rain for a clean / wait call.';
+    }
+  }
+
+  recalc();
+</script>
+</body>
+</html>
