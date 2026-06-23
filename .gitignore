@@ -309,6 +309,7 @@ Thumbs.db
 scratch/
 .scratch/
 NOTES.local.md
+SESSION_STARTUP.md
 
 # WSL Zone.Identifier sidecar files (created when downloading via Windows Explorer)
 *:Zone.Identifier
