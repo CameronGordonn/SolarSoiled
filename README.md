@@ -1,5 +1,12 @@
 # SolarSoiled
 
+> **Archived reference snapshot.** This is the public, read-only code surface of SolarSoiled — a
+> curated snapshot of the pipeline, kept for reference and transparency. Active development happens
+> in a private repository; this repo is no longer synced. The live homeowner tools run at
+> [betterbehaviorfoundation.com/tools](https://betterbehaviorfoundation.com/tools). Licensed under
+> **AGPL-3.0** (see [LICENSE](LICENSE)), consistent with its Ultralytics YOLO dependency — provided
+> for reference, not as a grant of commercial reuse. © 2026 Better Behavior Foundation.
+
 End-to-end geospatial ML system for detecting rooftop solar arrays in public aerial imagery and scoring per-array soiling risk. **Two-stage architecture**: YOLOv11 polygon segmentation on NAIP imagery (Stage 1) → XGBoost risk model trained on weather reanalysis, air quality, land use, and structural features (Stage 2). Designed county-agnostic; runs on any NAIP-covered AOI.
 
 **Why it matters**: Solar panel soiling (dust, pollen, aerosols) reduces energy output by 1–10% in temperate climates and up to 25–30% in arid regions. Optimizing cleaning schedules across a county-scale install base requires knowing *which* arrays are highest-risk and *when* — from public data, without site visits. This system automates that from raw GeoTIFF to actionable cleaning recommendations.
@@ -10,7 +17,7 @@ End-to-end geospatial ML system for detecting rooftop solar arrays in public aer
 
 Every output carries `model_version`, `beta`, and `known_limitations` — quality metadata is in the output contract, not a footnote.
 
-> **What this repo is.** This is the **public surface** of SolarSoiled — the landing page, the homeowner dashboard, and a curated snapshot of the pipeline for reference. The full ML pipeline, training data, internal runbooks, and any homeowner/parcel data live in a **private** repo to protect IP and avoid exposing sensitive data. Nothing PII-bearing or secret ships here — see [`SYNC.md`](SYNC.md) for the pre-publish safety gate.
+> **What this repo is.** This is the **public surface** of SolarSoiled — a curated snapshot of the pipeline for reference. The homeowner dashboard + calculator now live in the **Better Behavior Foundation site** (Tools section, `betterbehaviorfoundation.com/tools/`); the old GitHub Pages landing/dashboard hosted here has been retired. The full ML pipeline, training data, internal runbooks, and any homeowner/parcel data live in a **private** repo to protect IP and avoid exposing sensitive data. Nothing PII-bearing or secret ships here — see [`SYNC.md`](SYNC.md) for the pre-publish safety gate.
 
 ---
 
@@ -134,7 +141,7 @@ All external data fetches are disk-cached. Weather and air quality data streams 
 
 - **Train-set relabeling + R0 retrain** — iterative Roboflow relabeling with per-detection RCA driving batches; val/test already relabeled; targeting SAHI F1 ≥ 0.55 beta gate
 - **Duke curriculum ramp (R1+)** — joint NAIP + Duke training after R0 lands; curriculum in `configs/yolo/experiments_joint_v2_ramp.yaml` with hard regression stop-rule
-- **Stage 2 AUC improvement** — feature ablation and label-source comparison toward the 0.70 spatial-CV gate
+- **Stage 2 AUC improvement** — feature ablation and label-source comparison toward the 0.70 holdout-2022 gate (spatial-CV gate already cleared at 0.728)
 - **Beta API surface** — `/detect`, `/risk`, `/recommend` endpoints with quality metadata, auth, and per-scan metering
 
 ---
