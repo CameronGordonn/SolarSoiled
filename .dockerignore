@@ -29,10 +29,6 @@ __pycache__/
 conda-lock.yml
 environment.yml
 
-# landing page (not part of the CLI image)
-solarsoiled-landing/
-build_solarsoiled.py
-
 # docs
 docs/
 *.md
